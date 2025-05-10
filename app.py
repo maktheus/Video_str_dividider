@@ -154,77 +154,248 @@ with tabs[0]:
     
     # Display video and transcription options if a video is loaded
     if st.session_state.video_path is not None:
-        # Display the uploaded video
-        st.video(st.session_state.video_path)
+        st.markdown("<hr style='margin: 30px 0 20px 0; border:none; height:1px; background-color:#e0e8f5;'>", unsafe_allow_html=True)
         
-        # Transcribe button
+        st.markdown("""
+        <div style="margin-bottom:15px;">
+            <h3 style="color:#1e3a8a; font-size:20px; font-weight:600; margin-bottom:8px;">
+                🎥 Seu vídeo está pronto para processamento
+            </h3>
+            <p style="color:#4a5568; font-size:14px; margin-top:0;">
+                Visualize seu vídeo e clique no botão abaixo para iniciar a transcrição com inteligência artificial
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create columns to display video and info side by side
+        vid_col1, vid_col2 = st.columns([2, 1])
+        
+        with vid_col1:
+            # Display the uploaded video with a styled container
+            st.markdown("<div style='padding:5px; border-radius:10px; background-color:#f0f6ff;'>", unsafe_allow_html=True)
+            st.video(st.session_state.video_path)
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        with vid_col2:
+            # Display video information
+            video_processor = VideoProcessor()
+            duration = video_processor.get_video_duration(st.session_state.video_path)
+            duration_min = int(duration // 60)
+            duration_sec = int(duration % 60)
+            
+            st.markdown(f"""
+            <div style="background-color:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); height:100%;">
+                <h4 style="color:#4287f5; font-size:16px; margin-bottom:15px; font-weight:600;">Informações do Vídeo</h4>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:14px; color:#718096; margin-bottom:2px;">Duração:</div>
+                    <div style="font-weight:500; color:#2d3748;">{duration_min} minutos e {duration_sec} segundos</div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:14px; color:#718096; margin-bottom:2px;">Formato:</div>
+                    <div style="font-weight:500; color:#2d3748;">{os.path.splitext(st.session_state.video_path)[1].upper().replace(".", "")}</div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:14px; color:#718096; margin-bottom:2px;">Tamanho estimado da transcrição:</div>
+                    <div style="font-weight:500; color:#2d3748;">~{int(duration * 1.5)} palavras</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Transcribe button section
         if 'transcription_started' not in st.session_state:
             st.session_state.transcription_started = False
             
         if 'transcription_complete' not in st.session_state:
             st.session_state.transcription_complete = False
-            
+        
+        # Elegante botão de transcrição
+        st.markdown("<div style='margin:25px 0;'>", unsafe_allow_html=True)
+        
         # Check if we should start transcription
-        if st.button("Transcrever com Whisper") or st.session_state.transcription_started:
-            # Set flag to indicate transcription has started
-            st.session_state.transcription_started = True
+        transcribe_col1, transcribe_col2, transcribe_col3 = st.columns([1, 2, 1])
+        with transcribe_col2:
+            if st.button("🔊 Iniciar Transcrição com IA", 
+                        help="Utiliza o modelo Whisper para transcrever o áudio em texto",
+                        use_container_width=True,
+                        type="primary") or st.session_state.transcription_started:
+                # Set flag to indicate transcription has started
+                st.session_state.transcription_started = True
             
-            # Initialize subtitle processor
+            # Initialize processors
             subtitle_processor = SubtitleProcessor()
+            video_processor = VideoProcessor()
             
             # Define output path
             output_srt_path = os.path.join(st.session_state.temp_dir, "subtitles.srt")
             
             # Check if transcription is already in progress
             if not st.session_state.transcription_complete:
-                # Start or continue transcription
-                transcription_status = subtitle_processor.transcribe_video_async(
-                    st.session_state.video_path, 
-                    output_srt_path
-                )
-                
-                # Check if transcription is finished
-                if transcription_status['complete']:
-                    st.session_state.subtitle_path = output_srt_path
-                    st.session_state.processing_complete = True
-                    st.session_state.transcription_complete = True
-                    st.session_state.transcription_started = False
-                    st.success("Transcrição concluída!")
-                else:
-                    # Show progress and status
-                    st.write(transcription_status['message'])
-                    if 'progress' in transcription_status:
-                        st.progress(transcription_status['progress'])
+                # Styled container for transcription progress
+                transcription_container = st.container()
+                with transcription_container:
+                    st.markdown("""
+                    <div style="background-color:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin:15px 0;">
+                        <h4 style="color:#4287f5; font-size:16px; margin-bottom:15px; font-weight:600;">
+                            🤖 IA processando seu áudio
+                        </h4>
+                    """, unsafe_allow_html=True)
                     
-                    # Add a rerun to check progress
-                    time.sleep(1)
-                    st.rerun()
+                    # Start or continue transcription
+                    transcription_status = subtitle_processor.transcribe_video_async(
+                        st.session_state.video_path, 
+                        output_srt_path
+                    )
+                    
+                    # Check if transcription is finished
+                    if transcription_status.get('complete', False):
+                        st.session_state.subtitle_path = output_srt_path
+                        st.session_state.processing_complete = True
+                        st.session_state.transcription_complete = True
+                        st.session_state.transcription_started = False
+                        
+                        # Show completion status
+                        st.markdown("""
+                        <div style="margin-top:10px;">
+                            <span style="background-color:#4caf50; color:white; padding:4px 8px; border-radius:4px; font-size:13px; font-weight:500;">
+                                CONCLUÍDO
+                            </span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)  # Close the container
+                        
+                        st.success("✅ Transcrição concluída com sucesso! Agora você pode dividir o vídeo ou baixar a legenda.")
+                    else:
+                        # Show progress and status in a more attractive way
+                        st.write(f"**Status atual:** {transcription_status.get('message', 'Processando...')}")
+                        
+                        # Show progress if available
+                        progress_value = transcription_status.get('progress', 0)
+                        st.progress(progress_value)
+                        
+                        # Show estimated time
+                        duration = video_processor.get_video_duration(st.session_state.video_path)
+                        est_time = max(1, int(duration * 0.3))  # Rough estimate: 1/3 of video length
+                        
+                        st.info(f"⏱️ Transcrição em andamento. Tempo estimado: cerca de {est_time} minutos para um vídeo de {int(duration // 60)} minutos.")
+                        
+                        # Discretely show a small ad while they wait
+                        st.markdown("<div style='margin:20px 0;'>", unsafe_allow_html=True)
+                        ad_col1, ad_col2, ad_col3 = st.columns([1, 2, 1])
+                        with ad_col2:
+                            display_ad(
+                                ad_type="processing", 
+                                slot_id=ADSENSE_SLOTS.get("display", ADSENSE_SLOTS["banner"]), 
+                                client_id=ADSENSE_CLIENT_ID,
+                                width=300, 
+                                height=100
+                            )
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)  # Close the container
+                        
+                        # Add a rerun to check progress
+                        time.sleep(1)
+                        st.rerun()
                 
             # If transcription is complete, just update state
             elif st.session_state.transcription_complete:
                 st.session_state.subtitle_path = output_srt_path
                 st.session_state.processing_complete = True
             
-            # Display the subtitles
-            if st.session_state.subtitle_path:
+            # Display the subtitles if transcription is complete
+            if st.session_state.subtitle_path and os.path.exists(st.session_state.subtitle_path):
+                st.markdown("""
+                <div style="margin-top:25px; margin-bottom:10px;">
+                    <h3 style="color:#1e3a8a; font-size:20px; font-weight:600; margin-bottom:8px;">
+                        📝 Legendas Geradas
+                    </h3>
+                    <p style="color:#4a5568; font-size:14px; margin-top:0;">
+                        Suas legendas foram geradas com sucesso. Você pode visualizá-las abaixo ou baixá-las.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create a better download button
                 with open(st.session_state.subtitle_path, 'r') as f:
+                    subtitle_data = f.read()
+                    
+                download_col1, download_col2 = st.columns([1, 3])
+                with download_col1:
                     st.download_button(
-                        label="Baixar arquivo SRT",
-                        data=f,
+                        label="⬇️ Baixar Legendas (SRT)",
+                        data=subtitle_data,
                         file_name="legendas.srt",
-                        mime="text/plain"
+                        mime="text/plain",
+                        help="Arquivo de legendas no formato SRT compatível com a maioria dos players de vídeo",
+                        use_container_width=True
                     )
                 
-                with open(st.session_state.subtitle_path, 'r') as f:
-                    st.text_area("Legendas Geradas (formato SRT)", f.read(), height=300)
+                # Parse SRT for cleaner preview
+                import re
+                # Remove timing info for preview
+                preview_text = re.sub(r'\d+\s+\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}\s+', '', subtitle_data)
+                # Remove numbers
+                preview_text = re.sub(r'^\d+$', '', preview_text, flags=re.MULTILINE)
+                # Clean up extra whitespace
+                preview_text = re.sub(r'\n\s*\n', '\n\n', preview_text)
+                
+                # Show preview in a nice scrollable container
+                st.markdown(f"""
+                <div style="max-height:250px; overflow-y:auto; padding:20px; background-color:#f7f9fc; 
+                     border-radius:8px; margin:15px 0 20px 0; border:1px solid #e0e8f5; font-size:14px; line-height:1.6;">
+                    {preview_text[:1000]}
+                    {"..." if len(preview_text) > 1000 else ""}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Adicionar uma sugestão discreta para a próxima etapa
+                st.markdown("""
+                <div style="padding:15px; background-color:#e6f7ff; border-radius:8px; margin:20px 0; border-left:4px solid #4287f5;">
+                    <h4 style="color:#1e3a8a; margin-top:0; font-size:16px; font-weight:600;">💡 Próximo passo recomendado</h4>
+                    <p style="margin-bottom:0; color:#4a5568;">
+                        Agora você pode dividir seu vídeo em partes usando a aba <strong>"✂️ Dividir em Segmentos"</strong> acima. 
+                        As legendas serão automaticamente sincronizadas com cada parte!
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Now add a subtle ad below the transcription
+                st.markdown("<div style='margin:15px 0; text-align:center;'>", unsafe_allow_html=True)
+                display_ad(
+                    ad_type="inline", 
+                    slot_id=ADSENSE_SLOTS.get("leaderboard", ADSENSE_SLOTS["banner"]), 
+                    client_id=ADSENSE_CLIENT_ID,
+                    width=728, 
+                    height=90
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
 
 # Tab 2: Split Video
 with tabs[1]:
     if st.session_state.processing_complete:
-        st.write("### Dividir Vídeo em Segmentos")
+        st.markdown("""
+        <div style="margin-bottom:20px;">
+            <h3 style="color:#1e3a8a; font-size:22px; font-weight:600; margin-bottom:8px;">
+                ✂️ Dividir Vídeo em Segmentos
+            </h3>
+            <p style="color:#4a5568; font-size:15px; margin-top:0;">
+                Divida seu vídeo em partes iguais ou em pontos específicos para facilitar o compartilhamento
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Add explanation about subtitles
-        st.info("📝 **Como funciona:** Ao dividir o vídeo, o sistema também divide automaticamente as legendas. Cada segmento de vídeo recebe suas próprias legendas sincronizadas, com os tempos ajustados para corresponder ao novo segmento.")
+        # Add explanation about subtitles in a beautiful info box
+        st.markdown("""
+        <div style="padding:15px; background-color:#f0f6ff; border-radius:8px; margin:15px 0; border-left:4px solid #4287f5;">
+            <h4 style="color:#1e3a8a; margin-top:0; font-size:16px; font-weight:600;">💡 Como funciona</h4>
+            <p style="margin-bottom:0; color:#4a5568; line-height:1.5;">
+                Ao dividir o vídeo, o sistema também divide automaticamente as legendas. 
+                Cada segmento de vídeo recebe suas próprias legendas sincronizadas, com os tempos
+                ajustados para corresponder ao novo segmento. Isso é perfeito para compartilhar 
+                em redes sociais ou dividir conteúdo longo em partes.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Show original video for reference
         st.write("#### Vídeo Original")
