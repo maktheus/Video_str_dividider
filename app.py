@@ -5,6 +5,7 @@ import time
 from video_processor import VideoProcessor
 from subtitle_processor import SubtitleProcessor
 from utils import save_uploaded_file, create_download_link
+from ads import display_ad, display_affiliate_ad, display_support_message, show_video_tools_ads
 
 # Set page configuration
 st.set_page_config(
@@ -28,6 +29,15 @@ if 'temp_dir' not in st.session_state:
 # Create title and description
 st.title("Transcrição e Divisão de Vídeos")
 st.write("Envie um vídeo para transcrevê-lo com Whisper, dividi-lo em partes e baixá-lo com legendas sincronizadas.")
+
+# Display support message at the top
+display_support_message()
+
+# Top banner ad
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    display_ad(ad_type="banner", width=728, height=90)
+    st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)  # Add space after ad
 
 # Create tabs for different stages of the process
 tabs = st.tabs(["Enviar e Transcrever", "Dividir Vídeo", "Baixar"])
@@ -368,8 +378,25 @@ with tabs[2]:
     if st.session_state.processing_complete:
         st.write("### Opções de Download")
         
-        # Download full video with subtitles
-        st.write("#### Vídeo Completo")
+        # Sidebar ad
+        col_left, col_center, col_right = st.columns([1, 2, 1])
+        
+        with col_left:
+            # Affiliate ad on the left
+            display_affiliate_ad(
+                product_name="Microfone para Vídeos",
+                product_url="https://amzn.to/example1",
+                width=250,
+                height=250
+            )
+        
+        with col_right:
+            # Ad on the right
+            display_ad(ad_type="display", width=250, height=250)
+        
+        with col_center:
+            # Download full video with subtitles
+            st.write("#### Vídeo Completo")
         
         # Safely get the video filename
         video_filename = "video_original.mp4"
@@ -458,6 +485,23 @@ with tabs[2]:
     else:
         st.info("Por favor, envie e transcreva um vídeo primeiro.")
 
+# Add video tools ads before footer
+show_video_tools_ads()
+
+# Bottom banner ad
+st.markdown("<div style='margin:30px 0;'></div>", unsafe_allow_html=True)  # Add space before ad
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    display_ad(ad_type="leaderboard", width=728, height=90)
+
 # Add footer
 st.markdown("---")
 st.markdown("Aplicativo de Transcrição e Divisão de Vídeos - Desenvolvido com Streamlit, Whisper e FFmpeg")
+
+# Display a small privacy and ad notice
+st.markdown("""
+<div style="font-size:11px; color:#666; text-align:center; margin-top:20px;">
+    Este site usa cookies e contém anúncios para ajudar a manter seu funcionamento gratuito.
+    Ao usar este site, você concorda com nossa <a href="#">Política de Privacidade</a>.
+</div>
+""", unsafe_allow_html=True)
