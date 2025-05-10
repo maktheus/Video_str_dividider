@@ -2,12 +2,69 @@ import os
 import subprocess
 import tempfile
 import json
+import time
+import streamlit as st
+from pytube import YouTube
 from subtitle_processor import SubtitleProcessor
 
 class VideoProcessor:
     def __init__(self):
         """Initialize the VideoProcessor class."""
         self.subtitle_processor = SubtitleProcessor()
+        
+    def download_youtube_video(self, youtube_url, output_dir):
+        """Download a video from YouTube.
+        
+        Args:
+            youtube_url (str): URL of the YouTube video.
+            output_dir (str): Directory to save the downloaded video.
+            
+        Returns:
+            str: Path to the downloaded video file.
+        """
+        try:
+            # Create a progress message
+            st.write("Conectando ao YouTube...")
+            
+            # Create YouTube object
+            yt = YouTube(youtube_url)
+            
+            # Get video title and display it
+            video_title = yt.title
+            st.write(f"Vídeo encontrado: {video_title}")
+            
+            # Create a progress message for downloading
+            st.write("Procurando a melhor qualidade disponível...")
+            
+            # Get the stream with the highest resolution (with audio)
+            streams = yt.streams.filter(progressive=True, file_extension='mp4')
+            if not streams:
+                st.write("Nenhum stream com áudio e vídeo juntos disponível, baixando apenas vídeo...")
+                streams = yt.streams.filter(file_extension='mp4')
+                
+            if not streams:
+                raise Exception("Não foi possível encontrar um formato de vídeo compatível")
+                
+            # Get the first stream (highest resolution available)
+            stream = streams.order_by('resolution').desc().first()
+            
+            # Generate a output filename
+            output_filename = f"youtube_video_{int(time.time())}.mp4"
+            output_path = os.path.join(output_dir, output_filename)
+            
+            # Download the video
+            st.write(f"Baixando o vídeo... (pode levar alguns minutos dependendo do tamanho)")
+            
+            # Execute download
+            stream.download(output_path=output_dir, filename=output_filename)
+            
+            st.write(f"✅ Download concluído!")
+            
+            return output_path
+            
+        except Exception as e:
+            st.error(f"Erro ao baixar vídeo do YouTube: {str(e)}")
+            raise Exception(f"Erro ao baixar vídeo do YouTube: {str(e)}")
     
     def get_video_duration(self, video_path):
         """Get the duration of a video file in seconds.

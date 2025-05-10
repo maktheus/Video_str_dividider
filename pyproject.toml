@@ -11,4 +11,5 @@ dependencies = [
     "srt>=3.5.3",
     "streamlit>=1.45.0",
     "whisper>=1.1.10",
+    "pytube>=15.0.0",
 ]

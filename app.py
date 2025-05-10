@@ -34,15 +34,37 @@ tabs = st.tabs(["Enviar e Transcrever", "Dividir Vídeo", "Baixar"])
 
 # Tab 1: Upload and Transcribe
 with tabs[0]:
-    # File upload
-    uploaded_file = st.file_uploader("Envie seu arquivo de vídeo", type=["mp4", "avi", "mov", "mkv"])
+    # Create two tabs for file upload methods
+    upload_tabs = st.tabs(["Enviar arquivo", "Link do YouTube"])
     
-    if uploaded_file is not None:
-        # Save the uploaded file temporarily
-        if st.session_state.video_path is None:
-            st.session_state.video_path = save_uploaded_file(uploaded_file, st.session_state.temp_dir)
-            st.success(f"Vídeo enviado com sucesso!")
+    # Tab for file upload
+    with upload_tabs[0]:
+        uploaded_file = st.file_uploader("Envie seu arquivo de vídeo", type=["mp4", "avi", "mov", "mkv"])
         
+        if uploaded_file is not None:
+            # Save the uploaded file temporarily
+            if st.session_state.video_path is None:
+                st.session_state.video_path = save_uploaded_file(uploaded_file, st.session_state.temp_dir)
+                st.success(f"Vídeo enviado com sucesso!")
+    
+    # Tab for YouTube link
+    with upload_tabs[1]:
+        youtube_url = st.text_input("Cole o link do vídeo do YouTube", placeholder="https://www.youtube.com/watch?v=...")
+        
+        if youtube_url:
+            if st.button("Baixar vídeo do YouTube"):
+                try:
+                    with st.spinner("Processando o link do YouTube..."):
+                        # Download the YouTube video
+                        video_processor = VideoProcessor()
+                        st.session_state.video_path = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir)
+                        
+                    st.success("Vídeo do YouTube baixado com sucesso!")
+                except Exception as e:
+                    st.error(f"Erro ao baixar vídeo do YouTube: {str(e)}")
+    
+    # Display video and transcription options if a video is loaded
+    if st.session_state.video_path is not None:
         # Display the uploaded video
         st.video(st.session_state.video_path)
         
