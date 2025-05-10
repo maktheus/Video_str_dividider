@@ -69,21 +69,52 @@ with tabs[0]:
         st.video(st.session_state.video_path)
         
         # Transcribe button
-        if st.button("Transcrever com Whisper"):
-            with st.spinner("Transcrevendo vídeo..."):
-                # Initialize the subtitle processor
-                subtitle_processor = SubtitleProcessor()
-                
-                # Transcribe the video
-                st.session_state.subtitle_path = subtitle_processor.transcribe_video(
+        if 'transcription_started' not in st.session_state:
+            st.session_state.transcription_started = False
+            
+        if 'transcription_complete' not in st.session_state:
+            st.session_state.transcription_complete = False
+            
+        # Check if we should start transcription
+        if st.button("Transcrever com Whisper") or st.session_state.transcription_started:
+            # Set flag to indicate transcription has started
+            st.session_state.transcription_started = True
+            
+            # Initialize subtitle processor
+            subtitle_processor = SubtitleProcessor()
+            
+            # Define output path
+            output_srt_path = os.path.join(st.session_state.temp_dir, "subtitles.srt")
+            
+            # Check if transcription is already in progress
+            if not st.session_state.transcription_complete:
+                # Start or continue transcription
+                transcription_status = subtitle_processor.transcribe_video_async(
                     st.session_state.video_path, 
-                    os.path.join(st.session_state.temp_dir, "subtitles.srt")
+                    output_srt_path
                 )
                 
-                # Set the processing complete flag
-                st.session_state.processing_complete = True
+                # Check if transcription is finished
+                if transcription_status['complete']:
+                    st.session_state.subtitle_path = output_srt_path
+                    st.session_state.processing_complete = True
+                    st.session_state.transcription_complete = True
+                    st.session_state.transcription_started = False
+                    st.success("Transcrição concluída!")
+                else:
+                    # Show progress and status
+                    st.write(transcription_status['message'])
+                    if 'progress' in transcription_status:
+                        st.progress(transcription_status['progress'])
+                    
+                    # Add a rerun to check progress
+                    time.sleep(1)
+                    st.rerun()
                 
-            st.success("Transcrição concluída!")
+            # If transcription is complete, just update state
+            elif st.session_state.transcription_complete:
+                st.session_state.subtitle_path = output_srt_path
+                st.session_state.processing_complete = True
             
             # Display the subtitles
             if st.session_state.subtitle_path:
