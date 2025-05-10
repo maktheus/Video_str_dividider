@@ -132,7 +132,14 @@ with tabs[0]:
 # Tab 2: Split Video
 with tabs[1]:
     if st.session_state.processing_complete:
-        st.write("Especifique como dividir o vídeo:")
+        st.write("### Dividir Vídeo em Segmentos")
+        
+        # Show original video for reference
+        st.write("#### Vídeo Original")
+        st.video(st.session_state.video_path)
+        
+        st.write("#### Configurar Divisão")
+        st.write("Especifique como você deseja dividir o vídeo:")
         
         # Option for splitting method
         split_method = st.radio(
@@ -143,53 +150,154 @@ with tabs[1]:
         video_processor = VideoProcessor()
         duration = video_processor.get_video_duration(st.session_state.video_path)
         
+        # Show video duration
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        st.write(f"**Duração do vídeo:** {minutes} minutos e {seconds} segundos ({duration:.2f} segundos)")
+        
+        # Initialize segments in session state if not exists
+        if 'segments' not in st.session_state:
+            st.session_state.segments = []
+        
         if split_method == "Partes iguais":
-            num_parts = st.number_input("Número de partes", min_value=2, max_value=20, value=2)
+            # Add some tips
+            st.info("💡 Este modo divide o vídeo em partes com igual duração.")
             
-            if st.button("Dividir Vídeo"):
-                with st.spinner(f"Dividindo vídeo em {num_parts} partes iguais..."):
-                    # Clear previous segments
-                    st.session_state.segments = []
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                num_parts = st.number_input("Número de partes", min_value=2, max_value=20, value=2)
+            
+            with col2:
+                segment_duration = duration / num_parts
+                segment_min = int(segment_duration // 60)
+                segment_sec = int(segment_duration % 60)
+                st.write(f"Cada parte: ~{segment_min}m {segment_sec}s")
+            
+            if st.button("Dividir Vídeo", key="split_equal"):
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Show initial status
+                status_text.write("Iniciando divisão do vídeo...")
+                progress_bar.progress(10)
+                
+                # Clear previous segments
+                st.session_state.segments = []
+                
+                # Split the video and subtitles
+                try:
+                    # Update status
+                    status_text.write("Processando segmentos de vídeo...")
+                    progress_bar.progress(30)
                     
-                    # Split the video and subtitles
+                    # Split the video
                     st.session_state.segments = video_processor.split_video_equal_parts(
                         st.session_state.video_path,
                         st.session_state.subtitle_path,
                         num_parts,
                         st.session_state.temp_dir
                     )
-                
-                st.success(f"Vídeo dividido em {num_parts} partes com sucesso!")
+                    
+                    # Complete progress
+                    progress_bar.progress(100)
+                    status_text.write(f"✅ Vídeo dividido em {num_parts} partes com sucesso!")
+                    
+                except Exception as e:
+                    st.error(f"Erro ao dividir vídeo: {str(e)}")
+                    progress_bar.progress(0)
         
         else:  # Custom timestamps
-            st.write(f"Duração do vídeo: {duration:.2f} segundos")
+            # Add some tips
+            st.info("💡 Este modo permite dividir o vídeo em pontos específicos. Digite os tempos (em segundos) nos quais deseja fazer os cortes.")
+            
+            # Add example markers based on video duration
+            if duration > 60:
+                example_markers = [
+                    int(duration * 0.25),  # 25% of the video
+                    int(duration * 0.5),   # 50% of the video
+                    int(duration * 0.75)   # 75% of the video
+                ]
+                example_str = '\n'.join([str(marker) for marker in example_markers])
+            else:
+                example_str = "5\n10\n15"
             
             # Allow user to specify timestamps
             timestamps_str = st.text_area(
                 "Digite os marcadores de tempo (em segundos, um por linha):",
-                help="Por exemplo:\n30\n120\n180"
+                value=example_str,
+                help="Por exemplo, para um vídeo de 5 minutos (300 segundos), você pode digitar:\n60\n120\n180\n240"
             )
             
-            if st.button("Dividir Vídeo"):
+            # Add a visualization of the markers
+            if timestamps_str:
+                try:
+                    timestamps = [float(ts.strip()) for ts in timestamps_str.split('\n') if ts.strip()]
+                    timestamps = sorted([ts for ts in timestamps if 0 < ts < duration])
+                    
+                    if timestamps:
+                        # Calculate segment positions for visualization
+                        segment_points = [0] + timestamps + [duration]
+                        segments_info = []
+                        
+                        for i in range(len(segment_points) - 1):
+                            start = segment_points[i]
+                            end = segment_points[i+1]
+                            segment_duration = end - start
+                            
+                            # Format times
+                            start_min = int(start // 60)
+                            start_sec = int(start % 60)
+                            end_min = int(end // 60)
+                            end_sec = int(end % 60)
+                            
+                            segments_info.append(
+                                f"Segmento {i+1}: {start_min}m{start_sec}s - {end_min}m{end_sec}s (duração: {segment_duration:.1f}s)"
+                            )
+                        
+                        # Show segments info
+                        st.write("**Segmentos que serão criados:**")
+                        for info in segments_info:
+                            st.write(info)
+                except ValueError:
+                    st.warning("Por favor, digite apenas valores numéricos para os marcadores de tempo.")
+            
+            if st.button("Dividir Vídeo", key="split_custom"):
                 if timestamps_str:
                     try:
                         timestamps = [float(ts.strip()) for ts in timestamps_str.split('\n') if ts.strip()]
                         timestamps = sorted([ts for ts in timestamps if 0 < ts < duration])
                         
                         if timestamps:
-                            with st.spinner(f"Dividindo vídeo nos marcadores de tempo personalizados..."):
-                                # Clear previous segments
-                                st.session_state.segments = []
+                            progress_bar = st.progress(0)
+                            status_text = st.empty()
+                            
+                            # Show initial status
+                            status_text.write("Iniciando divisão do vídeo...")
+                            progress_bar.progress(10)
+                            
+                            # Clear previous segments
+                            st.session_state.segments = []
+                            
+                            try:
+                                # Update status
+                                status_text.write("Processando segmentos de vídeo nos pontos especificados...")
+                                progress_bar.progress(30)
                                 
-                                # Split the video and subtitles
+                                # Split the video
                                 st.session_state.segments = video_processor.split_video_custom_timestamps(
                                     st.session_state.video_path,
                                     st.session_state.subtitle_path,
                                     timestamps,
                                     st.session_state.temp_dir
                                 )
-                            
-                            st.success(f"Vídeo dividido em {len(timestamps)} pontos com sucesso!")
+                                
+                                # Complete progress
+                                progress_bar.progress(100)
+                                status_text.write(f"✅ Vídeo dividido em {len(timestamps)+1} segmentos com sucesso!")
+                                
+                            except Exception as e:
+                                st.error(f"Erro ao dividir vídeo: {str(e)}")
+                                progress_bar.progress(0)
                         else:
                             st.error("Nenhum marcador de tempo válido fornecido.")
                     except ValueError:
@@ -197,14 +305,40 @@ with tabs[1]:
         
         # Display the segments
         if st.session_state.segments:
-            st.write("### Segmentos de Vídeo")
+            st.write("### Segmentos de Vídeo Gerados")
+            
+            # Create columns for each segment
+            cols = st.columns(min(3, len(st.session_state.segments)))
+            
             for i, segment in enumerate(st.session_state.segments):
-                with st.expander(f"Segmento {i+1}"):
+                col_index = i % 3
+                
+                with cols[col_index]:
+                    st.write(f"**Segmento {i+1}**")
+                    
+                    # Display segment information
+                    segment_start = segment['start_time']
+                    segment_end = segment['end_time']
+                    segment_duration = segment_end - segment_start
+                    
+                    # Format times for display
+                    start_min = int(segment_start // 60)
+                    start_sec = int(segment_start % 60)
+                    end_min = int(segment_end // 60)
+                    end_sec = int(segment_end % 60)
+                    
+                    st.write(f"Tempo: {start_min}m{start_sec}s até {end_min}m{end_sec}s")
+                    st.write(f"Duração: {segment_duration:.1f}s")
+                    
+                    # Display video preview
                     st.video(segment['video_path'])
-                    with open(segment['subtitle_path'], 'r') as f:
-                        st.text_area(f"Legendas do Segmento {i+1}", f.read(), height=150)
+                    
+                    # Create expander for subtitles
+                    with st.expander("Ver Legendas"):
+                        with open(segment['subtitle_path'], 'r') as f:
+                            st.text_area(f"Legendas", f.read(), height=150)
     else:
-        st.info("Por favor, envie e transcreva um vídeo primeiro.")
+        st.info("👆 Por favor, envie e transcreva um vídeo primeiro na aba 'Enviar e Transcrever'.")
 
 # Tab 3: Download
 with tabs[2]:
