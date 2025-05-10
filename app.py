@@ -134,6 +134,9 @@ with tabs[1]:
     if st.session_state.processing_complete:
         st.write("### Dividir Vídeo em Segmentos")
         
+        # Add explanation about subtitles
+        st.info("📝 **Como funciona:** Ao dividir o vídeo, o sistema também divide automaticamente as legendas. Cada segmento de vídeo recebe suas próprias legendas sincronizadas, com os tempos ajustados para corresponder ao novo segmento.")
+        
         # Show original video for reference
         st.write("#### Vídeo Original")
         st.video(st.session_state.video_path)
@@ -334,9 +337,29 @@ with tabs[1]:
                     st.video(segment['video_path'])
                     
                     # Create expander for subtitles
-                    with st.expander("Ver Legendas"):
+                    with st.expander("Ver Legendas Sincronizadas"):
+                        # Read subtitle content
+                        with open(segment['subtitle_path'], 'r', encoding='utf-8', errors='replace') as f:
+                            subtitle_content = f.read()
+                        
+                        # Count number of subtitle entries
+                        subtitle_count = subtitle_content.count('\n\n') + 1
+                        
+                        # Add informative header
+                        st.write(f"**{subtitle_count} legendas sincronizadas com este segmento**")
+                        st.write("As legendas abaixo foram ajustadas para sincronizar com este segmento de vídeo.")
+                        
+                        # Show subtitle content
+                        st.text_area(f"Legendas do Segmento {i+1}", subtitle_content, height=150)
+                        
+                        # Add download button for this segment's subtitles
                         with open(segment['subtitle_path'], 'r') as f:
-                            st.text_area(f"Legendas", f.read(), height=150)
+                            st.download_button(
+                                label=f"Baixar legendas do Segmento {i+1}",
+                                data=f,
+                                file_name=f"segmento_{i+1}.srt",
+                                mime="text/plain"
+                            )
     else:
         st.info("👆 Por favor, envie e transcreva um vídeo primeiro na aba 'Enviar e Transcrever'.")
 
@@ -348,10 +371,15 @@ with tabs[2]:
         # Download full video with subtitles
         st.write("#### Vídeo Completo")
         
+        # Safely get the video filename
+        video_filename = "video_original.mp4"
+        if st.session_state.video_path and os.path.exists(st.session_state.video_path):
+            video_filename = os.path.basename(st.session_state.video_path)
+            
         create_download_link(
             st.session_state.video_path,
             "Baixar Vídeo Original",
-            os.path.basename(st.session_state.video_path)
+            video_filename
         )
         
         if st.session_state.subtitle_path:
