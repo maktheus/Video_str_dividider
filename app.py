@@ -38,58 +38,119 @@ if 'processing_complete' not in st.session_state:
 if 'temp_dir' not in st.session_state:
     st.session_state.temp_dir = tempfile.mkdtemp()
 
-# Create title and description
-st.title("Transcrição e Divisão de Vídeos")
-st.write("Envie um vídeo para transcrevê-lo com Whisper, dividi-lo em partes e baixá-lo com legendas sincronizadas.")
+# Create a modern header with title and description
+st.markdown("""
+<div style="text-align:center; padding:10px 0 30px 0;">
+    <h1 style="color:#1e3a8a; font-size:36px; font-weight:700; margin-bottom:12px;">
+        🎬 Transcrição e Divisão de Vídeos
+    </h1>
+    <p style="color:#4a5568; font-size:18px; max-width:800px; margin:0 auto; line-height:1.5;">
+        Transforme seus vídeos com transcrições profissionais, divida em partes perfeitas 
+        e baixe com legendas sincronizadas automaticamente.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-# Display support message at the top
+# Top banner ad in a more subtle way
+col_ad = st.container()
+with col_ad:
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        display_ad(
+            ad_type="banner", 
+            slot_id=ADSENSE_SLOTS["banner"], 
+            client_id=ADSENSE_CLIENT_ID,
+            width=728, 
+            height=90
+        )
+
+# Display support message in a more prominent position
 display_support_message()
 
-# Top banner ad
-col1, col2, col3 = st.columns([1, 3, 1])
-with col2:
-    display_ad(
-        ad_type="banner", 
-        slot_id=ADSENSE_SLOTS["banner"], 
-        client_id=ADSENSE_CLIENT_ID,
-        width=728, 
-        height=90
-    )
-    st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)  # Add space after ad
+# Create custom tabs with icons and better labels
+st.markdown("""
+<style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        border-radius: 8px;
+        padding: 0 20px;
+        background-color: #f0f6ff;
+        font-weight: 500;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #4287f5 !important;
+        color: white !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Create tabs for different stages of the process
-tabs = st.tabs(["Enviar e Transcrever", "Dividir Vídeo", "Baixar"])
+# Create tabs for different stages of the process with modern naming
+tabs = st.tabs(["📤 Adicionar Vídeo & Transcrever", "✂️ Dividir em Segmentos", "⬇️ Baixar & Compartilhar"])
 
 # Tab 1: Upload and Transcribe
 with tabs[0]:
-    # Create two tabs for file upload methods
-    upload_tabs = st.tabs(["Enviar arquivo", "Link do YouTube"])
+    st.markdown("""
+    <div style="margin-bottom:20px;">
+        <h3 style="color:#1e3a8a; font-size:20px; font-weight:600; margin-bottom:8px;">
+            Adicione seu vídeo para começar
+        </h3>
+        <p style="color:#4a5568; font-size:15px; margin-top:0;">
+            Faça upload de um arquivo local ou baixe diretamente de uma URL do YouTube
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create styled tabs for file upload methods
+    upload_tabs = st.tabs(["📂 Upload de Arquivo", "🎬 Baixar do YouTube"])
     
     # Tab for file upload
     with upload_tabs[0]:
-        uploaded_file = st.file_uploader("Envie seu arquivo de vídeo", type=["mp4", "avi", "mov", "mkv"])
+        st.markdown("""
+        <p style="color:#4a5568; font-size:14px; margin-bottom:15px;">
+            Selecione um arquivo de vídeo do seu computador para transcrever. 
+            Suportamos MP4, AVI, MOV e outros formatos populares.
+        </p>
+        """, unsafe_allow_html=True)
+        
+        uploaded_file = st.file_uploader("Arraste seu arquivo aqui ou clique para selecionar", 
+                                         type=["mp4", "avi", "mov", "mkv", "webm"])
         
         if uploaded_file is not None:
             # Save the uploaded file temporarily
             if st.session_state.video_path is None:
                 st.session_state.video_path = save_uploaded_file(uploaded_file, st.session_state.temp_dir)
-                st.success(f"Vídeo enviado com sucesso!")
+                st.success("✅ Vídeo carregado com sucesso! Pronto para transcrever.")
     
     # Tab for YouTube link
     with upload_tabs[1]:
-        youtube_url = st.text_input("Cole o link do vídeo do YouTube", placeholder="https://www.youtube.com/watch?v=...")
+        st.markdown("""
+        <p style="color:#4a5568; font-size:14px; margin-bottom:15px;">
+            Cole o link de qualquer vídeo público do YouTube para baixar e transcrever automaticamente.
+            Ideal para palestras, tutoriais e entrevistas.
+        </p>
+        """, unsafe_allow_html=True)
+        
+        youtube_url = st.text_input("Cole a URL do YouTube aqui", 
+                                   placeholder="https://www.youtube.com/watch?v=...")
         
         if youtube_url:
-            if st.button("Baixar vídeo do YouTube"):
-                try:
-                    with st.spinner("Processando o link do YouTube..."):
-                        # Download the YouTube video
-                        video_processor = VideoProcessor()
-                        st.session_state.video_path = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir)
-                        
-                    st.success("Vídeo do YouTube baixado com sucesso!")
-                except Exception as e:
-                    st.error(f"Erro ao baixar vídeo do YouTube: {str(e)}")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                if st.button("📥 Baixar e Processar", 
+                            help="Baixa o vídeo do YouTube e prepara para transcrição",
+                            use_container_width=True):
+                    try:
+                        with st.spinner("🔄 Baixando vídeo do YouTube..."):
+                            # Download the YouTube video
+                            video_processor = VideoProcessor()
+                            st.session_state.video_path = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir)
+                            
+                        st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
+                    except Exception as e:
+                        st.error(f"❌ Erro ao baixar vídeo: {str(e)}")
     
     # Display video and transcription options if a video is loaded
     if st.session_state.video_path is not None:
