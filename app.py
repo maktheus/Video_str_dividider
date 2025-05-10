@@ -14,6 +14,16 @@ st.set_page_config(
     layout="wide",
 )
 
+# Importar configurações de anúncios
+from ad_config import ADSENSE_CLIENT_ID, ADSENSE_SLOTS, AFFILIATE_LINKS, AFFILIATE_IMAGES
+
+# Inject AdSense script into HTML head
+adsense_script = f"""
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ADSENSE_CLIENT_ID}"
+     crossorigin="anonymous"></script>
+"""
+st.markdown(adsense_script, unsafe_allow_html=True)
+
 # Initialize session state variables if they don't exist
 if 'video_path' not in st.session_state:
     st.session_state.video_path = None
@@ -36,7 +46,13 @@ display_support_message()
 # Top banner ad
 col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
-    display_ad(ad_type="banner", width=728, height=90)
+    display_ad(
+        ad_type="banner", 
+        slot_id=ADSENSE_SLOTS["banner"], 
+        client_id=ADSENSE_CLIENT_ID,
+        width=728, 
+        height=90
+    )
     st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)  # Add space after ad
 
 # Create tabs for different stages of the process
@@ -385,14 +401,21 @@ with tabs[2]:
             # Affiliate ad on the left
             display_affiliate_ad(
                 product_name="Microfone para Vídeos",
-                product_url="https://amzn.to/example1",
+                product_url=AFFILIATE_LINKS["microphone"],
+                image_url=AFFILIATE_IMAGES["microphone"],
                 width=250,
                 height=250
             )
         
         with col_right:
             # Ad on the right
-            display_ad(ad_type="display", width=250, height=250)
+            display_ad(
+                ad_type="display", 
+                slot_id=ADSENSE_SLOTS["display"], 
+                client_id=ADSENSE_CLIENT_ID,
+                width=250, 
+                height=250
+            )
         
         with col_center:
             # Download full video with subtitles
@@ -492,7 +515,13 @@ show_video_tools_ads()
 st.markdown("<div style='margin:30px 0;'></div>", unsafe_allow_html=True)  # Add space before ad
 col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
-    display_ad(ad_type="leaderboard", width=728, height=90)
+    display_ad(
+        ad_type="leaderboard", 
+        slot_id=ADSENSE_SLOTS["leaderboard"], 
+        client_id=ADSENSE_CLIENT_ID,
+        width=728, 
+        height=90
+    )
 
 # Add footer
 st.markdown("---")

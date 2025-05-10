@@ -12,16 +12,31 @@ def display_ad(ad_type="banner", slot_id="1234567890", client_id="ca-pub-1234567
         width (int): Width of the ad unit in pixels
         height (int): Height of the ad unit in pixels
     """
-    # Create a placeholder colored div instead of actual ad during development
+    # Cria um div de placeholder colorido em vez do AdSense real
+    # Quando você tiver sua conta AdSense aprovada, pode substituir isso pelo código real
     ad_code = """
-    <div style="width:{0}px; height:{1}px; background-color:#f0f0f0; border:1px dashed #ccc; 
+    <div style="width:{}px; height:{}px; background-color:#f0f0f0; border:1px dashed #ccc; 
          display:flex; align-items:center; justify-content:center; margin:auto; color:#666;">
         <div style="text-align:center;">
             <div style="font-weight:bold;">ANÚNCIO</div>
-            <div style="font-size:12px;">{2} - {0}x{1}</div>
+            <div style="font-size:12px;">{} - {}x{}</div>
+            <div style="font-size:10px; margin-top:5px;">Para ativar o AdSense, substitua este placeholder pelo seu código real</div>
         </div>
     </div>
-    """.format(width, height, ad_type.capitalize())
+    """.format(width, height, ad_type.capitalize(), width, height)
+    
+    # Quando tiver sua conta AdSense aprovada, descomente o código abaixo
+    # e insira seus IDs reais do AdSense:
+    """
+    ad_code = '<div style="width:{}px; height:{}px; overflow:hidden; margin:auto;">'.format(width, height)
+    ad_code += '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={}">'.format(client_id)
+    ad_code += '</script>'
+    ad_code += '<!-- {} Ad -->'.format(ad_type.capitalize())
+    ad_code += '<ins class="adsbygoogle" style="display:block" data-ad-client="{}" data-ad-slot="{}"'.format(client_id, slot_id)
+    ad_code += ' data-ad-format="auto" data-full-width-responsive="true"></ins>'
+    ad_code += '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>'
+    ad_code += '</div>'
+    """
     
     # Display the ad using streamlit components
     components.html(ad_code, width=width, height=height)
@@ -42,10 +57,10 @@ def display_affiliate_ad(product_name="Amazon Echo", product_url="https://amzn.t
         image_url = "https://via.placeholder.com/300x200?text=" + product_name.replace(" ", "+")
     
     ad_code = """
-    <div style="width:{0}px; height:{1}px; border:1px solid #ddd; border-radius:5px; padding:10px; text-align:center; margin:auto;">
-        <a href="{2}" target="_blank" style="text-decoration:none; color:inherit;">
-            <img src="{3}" style="max-width:90%; max-height:60%; margin-bottom:10px;">
-            <h3 style="margin:5px 0; color:#1e3a8a;">{4}</h3>
+    <div style="width:{}px; height:{}px; border:1px solid #ddd; border-radius:5px; padding:10px; text-align:center; margin:auto;">
+        <a href="{}" target="_blank" style="text-decoration:none; color:inherit;">
+            <img src="{}" style="max-width:90%; max-height:60%; margin-bottom:10px;">
+            <h3 style="margin:5px 0; color:#1e3a8a;">{}</h3>
             <p style="margin:5px 0; color:#666;">Produto recomendado para quem trabalha com vídeos</p>
             <button style="background-color:#ff9900; color:white; border:none; padding:8px 15px; border-radius:4px; margin-top:10px; cursor:pointer;">
                 Ver oferta
@@ -76,6 +91,9 @@ def display_support_message():
 
 def show_video_tools_ads():
     """Display relevant video tools as affiliate ads."""
+    # Importar configurações aqui para evitar importação circular
+    from ad_config import AFFILIATE_LINKS, AFFILIATE_IMAGES
+    
     st.markdown("### Ferramentas de Vídeo Recomendadas")
     
     col1, col2 = st.columns(2)
@@ -83,8 +101,8 @@ def show_video_tools_ads():
     with col1:
         display_affiliate_ad(
             product_name="Microfone Profissional para Vídeos",
-            product_url="https://amzn.to/example1",
-            image_url="https://via.placeholder.com/300x200?text=Microfone",
+            product_url=AFFILIATE_LINKS["microphone"],
+            image_url=AFFILIATE_IMAGES["microphone"],
             width=280,
             height=300
         )
@@ -92,8 +110,8 @@ def show_video_tools_ads():
     with col2:
         display_affiliate_ad(
             product_name="Software de Edição de Vídeo",
-            product_url="https://amzn.to/example2",
-            image_url="https://via.placeholder.com/300x200?text=Software",
+            product_url=AFFILIATE_LINKS["software"],
+            image_url=AFFILIATE_IMAGES["software"],
             width=280,
             height=300
         )
