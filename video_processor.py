@@ -4,7 +4,7 @@ import tempfile
 import json
 import time
 import streamlit as st
-from pytube import YouTube
+import yt_dlp
 from subtitle_processor import SubtitleProcessor
 
 class VideoProcessor:
@@ -13,7 +13,7 @@ class VideoProcessor:
         self.subtitle_processor = SubtitleProcessor()
         
     def download_youtube_video(self, youtube_url, output_dir):
-        """Download a video from YouTube.
+        """Download a video from YouTube using yt-dlp.
         
         Args:
             youtube_url (str): URL of the YouTube video.
@@ -26,39 +26,47 @@ class VideoProcessor:
             # Create a progress message
             st.write("Conectando ao YouTube...")
             
-            # Create YouTube object
-            yt = YouTube(youtube_url)
-            
-            # Get video title and display it
-            video_title = yt.title
-            st.write(f"Vídeo encontrado: {video_title}")
-            
-            # Create a progress message for downloading
-            st.write("Procurando a melhor qualidade disponível...")
-            
-            # Get the stream with the highest resolution (with audio)
-            streams = yt.streams.filter(progressive=True, file_extension='mp4')
-            if not streams:
-                st.write("Nenhum stream com áudio e vídeo juntos disponível, baixando apenas vídeo...")
-                streams = yt.streams.filter(file_extension='mp4')
-                
-            if not streams:
-                raise Exception("Não foi possível encontrar um formato de vídeo compatível")
-                
-            # Get the first stream (highest resolution available)
-            stream = streams.order_by('resolution').desc().first()
-            
-            # Generate a output filename
+            # Generate an output filename with timestamp to avoid conflicts
             output_filename = f"youtube_video_{int(time.time())}.mp4"
             output_path = os.path.join(output_dir, output_filename)
             
+            # Ensure output directory exists
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Configure yt-dlp options
+            ydl_opts = {
+                'format': 'best[ext=mp4]',  # Best quality in mp4 format
+                'outtmpl': output_path,     # Output path
+                'quiet': True,              # Less verbose output
+                'no_warnings': True,        # No warnings
+                'progress': False,          # No progress to avoid clutter in logs
+            }
+            
+            # Create progress status
+            status = st.empty()
+            status.write("Obtendo informações do vídeo...")
+            
+            # First get video info to show title
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(youtube_url, download=False)
+                video_title = info.get('title', 'Vídeo do YouTube')
+            
+            # Display title
+            status.write(f"Vídeo encontrado: {video_title}")
+            
+            # Create a progress indicator
+            status.write(f"Baixando o vídeo... (pode levar alguns minutos)")
+            
             # Download the video
-            st.write(f"Baixando o vídeo... (pode levar alguns minutos dependendo do tamanho)")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([youtube_url])
             
-            # Execute download
-            stream.download(output_path=output_dir, filename=output_filename)
+            # Check if file exists
+            if not os.path.exists(output_path):
+                raise Exception("Falha ao baixar o vídeo - arquivo não foi criado")
             
-            st.write(f"✅ Download concluído!")
+            # Show success message
+            status.write(f"✅ Download do vídeo concluído!")
             
             return output_path
             
