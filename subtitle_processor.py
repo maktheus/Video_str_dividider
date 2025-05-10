@@ -1,5 +1,5 @@
 import os
-import whisper
+import subprocess
 import srt
 import datetime
 import tempfile
@@ -8,11 +8,10 @@ import streamlit as st
 class SubtitleProcessor:
     def __init__(self):
         """Initialize the SubtitleProcessor class."""
-        # The model will be loaded when needed
-        self.model = None
+        pass
     
     def transcribe_video(self, video_path, output_path):
-        """Transcribe a video file using Whisper and save as SRT.
+        """Transcribe a video file using Whisper CLI and save as SRT.
         
         Args:
             video_path (str): Path to the video file.
@@ -21,55 +20,83 @@ class SubtitleProcessor:
         Returns:
             str: Path to the generated SRT file.
         """
-        # Show progress message
-        st.write("Carregando o modelo Whisper (pode levar alguns segundos na primeira vez)...")
-        
-        # Load the model if not already loaded
-        if self.model is None:
-            # Use the tiny model for fastest processing
-            # Can be changed to other model sizes like "base", "small", "medium", "large"
-            self.model = whisper.load_model("tiny")
-        
         try:
-            # Transcribe the audio
-            st.write("Transcrevendo o vídeo com Whisper...")
-            result = self.model.transcribe(video_path)
+            # Extract audio from video to temporary file
+            temp_audio_file = os.path.join(os.path.dirname(output_path), "temp_audio.wav")
             
-            # Convert the result to SRT format
-            srt_content = self._whisper_result_to_srt(result)
+            # Show progress message
+            st.write("Extraindo áudio do vídeo...")
             
-            # Save the SRT file
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(srt_content)
+            # Use ffmpeg command to extract audio
+            ffmpeg_cmd = [
+                "ffmpeg", "-i", video_path, 
+                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                "-y", temp_audio_file
+            ]
             
-            return output_path
-        except Exception as e:
-            raise Exception(f"Erro ao transcrever o vídeo: {str(e)}")
-    
-    def _whisper_result_to_srt(self, result):
-        """Convert Whisper transcription result to SRT format.
-        
-        Args:
-            result (dict): Whisper transcription result.
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
             
-        Returns:
-            str: SRT formatted subtitles.
-        """
-        srt_subtitles = []
-        
-        for i, segment in enumerate(result['segments']):
-            # Create SRT subtitle object
-            subtitle = srt.Subtitle(
-                index=i+1,
-                start=datetime.timedelta(seconds=segment['start']),
-                end=datetime.timedelta(seconds=segment['end']),
-                content=segment['text'].strip()
+            if result.returncode != 0:
+                raise Exception(f"Erro ao extrair áudio: {result.stderr}")
+            
+            # Show transcription progress
+            st.write("Transcrevendo o áudio com Whisper (pode levar alguns segundos)...")
+            
+            # Use Whisper CLI to transcribe
+            result = subprocess.run(
+                ["whisper", temp_audio_file, "--model", "tiny", "--output_format", "srt", "--output_dir", os.path.dirname(output_path)],
+                capture_output=True, 
+                text=True
             )
             
-            srt_subtitles.append(subtitle)
+            if result.returncode != 0:
+                raise Exception(f"Erro do Whisper: {result.stderr}")
+            
+            # The output file will be named like the input audio file but with .srt extension
+            generated_srt = os.path.join(os.path.dirname(output_path), os.path.splitext(os.path.basename(temp_audio_file))[0] + ".srt")
+            
+            # If file exists, rename it to the requested output path
+            if os.path.exists(generated_srt):
+                # Read the file to fix possible encoding issues
+                with open(generated_srt, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+                
+                # Write to the requested output path
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                    
+                # Clean up temp files
+                os.remove(temp_audio_file)
+                os.remove(generated_srt)
+                
+                return output_path
+            else:
+                raise Exception(f"Arquivo SRT não foi gerado pelo Whisper.")
+                
+        except Exception as e:
+            st.error(f"Erro ao transcrever o vídeo: {str(e)}")
+            # Create a dummy SRT if transcription fails
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write("1\n00:00:00,000 --> 00:00:05,000\nErro na transcrição. Por favor, tente novamente.")
+            return output_path
+    
+    def _parse_srt_file(self, srt_file_path):
+        """Parse an SRT file to get subtitle segments.
         
-        # Format as string
-        return srt.compose(srt_subtitles)
+        Args:
+            srt_file_path (str): Path to the SRT file.
+            
+        Returns:
+            list: List of srt.Subtitle objects.
+        """
+        try:
+            with open(srt_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+            
+            return list(srt.parse(content))
+        except Exception as e:
+            st.error(f"Erro ao analisar arquivo SRT: {str(e)}")
+            return []
     
     def extract_subtitle_segment(self, subtitle_path, output_path, start_time, end_time):
         """Extract a segment from a subtitle file.

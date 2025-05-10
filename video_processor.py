@@ -1,7 +1,7 @@
 import os
-import ffmpeg
 import subprocess
 import tempfile
+import json
 from subtitle_processor import SubtitleProcessor
 
 class VideoProcessor:
@@ -19,11 +19,23 @@ class VideoProcessor:
             float: Duration of the video in seconds.
         """
         try:
-            probe = ffmpeg.probe(video_path)
-            duration = float(probe['format']['duration'])
+            # Use ffprobe to get duration
+            ffprobe_cmd = [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "json", video_path
+            ]
+            
+            result = subprocess.run(ffprobe_cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"Erro ao obter duração do vídeo: {result.stderr}")
+            
+            # Parse JSON output
+            output = json.loads(result.stdout)
+            duration = float(output['format']['duration'])
             return duration
         except Exception as e:
-            raise Exception(f"Error getting video duration: {str(e)}")
+            raise Exception(f"Erro ao obter duração do vídeo: {str(e)}")
     
     def split_video_equal_parts(self, video_path, subtitle_path, num_parts, output_dir):
         """Split a video into equal parts and generate corresponding subtitles.
@@ -109,14 +121,19 @@ class VideoProcessor:
             duration (float): Duration of the segment in seconds.
         """
         try:
-            (
-                ffmpeg
-                .input(input_path, ss=start_time, t=duration)
-                .output(output_path, c='copy')
-                .run(capture_stdout=True, capture_stderr=True, overwrite_output=True)
-            )
-        except ffmpeg.Error as e:
-            raise Exception(f"Error extracting video segment: {str(e)}")
+            # Use ffmpeg command to extract segment
+            ffmpeg_cmd = [
+                "ffmpeg", "-i", input_path, "-ss", str(start_time), 
+                "-t", str(duration), "-c", "copy", "-y", output_path
+            ]
+            
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"Erro ao extrair segmento de vídeo: {result.stderr}")
+                
+        except Exception as e:
+            raise Exception(f"Erro ao extrair segmento de vídeo: {str(e)}")
     
     def embed_subtitles(self, video_path, subtitle_path, output_path):
         """Embed subtitles into a video file.
@@ -131,19 +148,20 @@ class VideoProcessor:
         """
         try:
             # Use ffmpeg to embed subtitles
-            (
-                ffmpeg
-                .input(video_path)
-                .output(
-                    output_path,
-                    vf=f"subtitles='{subtitle_path}'",
-                    c='copy',
-                    c_v='libx264',
-                    preset='medium'
-                )
-                .run(capture_stdout=True, capture_stderr=True, overwrite_output=True)
-            )
+            subtitle_path_esc = subtitle_path.replace("'", "'\\''")  # Escape single quotes
             
+            ffmpeg_cmd = [
+                "ffmpeg", "-i", video_path, 
+                "-vf", f"subtitles='{subtitle_path_esc}'", 
+                "-c:a", "copy", "-c:v", "libx264", "-preset", "medium",
+                "-y", output_path
+            ]
+            
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"Erro ao incorporar legendas: {result.stderr}")
+                
             return output_path
-        except ffmpeg.Error as e:
-            raise Exception(f"Error embedding subtitles: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Erro ao incorporar legendas: {str(e)}")
