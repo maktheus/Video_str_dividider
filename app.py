@@ -568,177 +568,612 @@ with tabs[1]:
         
         # Display the segments
         if st.session_state.segments:
-            st.write("### Segmentos de Vídeo Gerados")
+            st.markdown("""
+            <div style="margin:30px 0 20px 0;">
+                <h3 style="color:#1e3a8a; font-size:22px; font-weight:600; margin-bottom:8px;">
+                    🎬 Segmentos de Vídeo Gerados
+                </h3>
+                <p style="color:#4a5568; font-size:15px; margin-top:0;">
+                    Seus vídeos foram divididos com legendas sincronizadas para cada parte
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # Create columns for each segment
-            cols = st.columns(min(3, len(st.session_state.segments)))
+            # Add a subtitle banner
+            st.markdown("""
+            <div style="margin-bottom:20px; padding:12px 15px; background-color:#f7f9fc; border-radius:8px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-weight:500; color:#4a5568;">Visualize, reproduza e baixe os segmentos de vídeo abaixo</div>
+                <div style="color:#4287f5; font-size:14px;">Cada segmento inclui legendas sincronizadas</div>
+            </div>
+            """, unsafe_allow_html=True)
             
+            # Small ad between segments header and content
+            display_ad(
+                ad_type="segment-header", 
+                slot_id=ADSENSE_SLOTS.get("banner", ADSENSE_SLOTS["banner"]), 
+                client_id=ADSENSE_CLIENT_ID,
+                width=728, 
+                height=90
+            )
+            
+            # Create better visual segments display
             for i, segment in enumerate(st.session_state.segments):
-                col_index = i % 3
+                # Display segment information
+                segment_start = segment['start_time']
+                segment_end = segment['end_time']
+                segment_duration = segment_end - segment_start
                 
-                with cols[col_index]:
-                    st.write(f"**Segmento {i+1}**")
-                    
-                    # Display segment information
-                    segment_start = segment['start_time']
-                    segment_end = segment['end_time']
-                    segment_duration = segment_end - segment_start
-                    
-                    # Format times for display
-                    start_min = int(segment_start // 60)
-                    start_sec = int(segment_start % 60)
-                    end_min = int(segment_end // 60)
-                    end_sec = int(segment_end % 60)
-                    
-                    st.write(f"Tempo: {start_min}m{start_sec}s até {end_min}m{end_sec}s")
-                    st.write(f"Duração: {segment_duration:.1f}s")
-                    
-                    # Display video preview
+                # Format times for display
+                start_min = int(segment_start // 60)
+                start_sec = int(segment_start % 60)
+                end_min = int(segment_end // 60)
+                end_sec = int(segment_end % 60)
+                
+                # Create a card-like container for each segment
+                st.markdown(f"""
+                <div style="margin:25px 0; padding:15px; background-color:white; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; margin-bottom:12px;">
+                        <div style="background-color:#4287f5; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px;">
+                            {i+1}
+                        </div>
+                        <div>
+                            <h4 style="margin:0 0 5px 0; color:#1e3a8a; font-size:18px; font-weight:600;">Segmento {i+1}</h4>
+                            <div style="color:#718096; font-size:14px;">
+                                De {start_min}m{start_sec}s até {end_min}m{end_sec}s
+                                <span style="margin-left:10px; padding:3px 8px; background-color:#e6f7ff; border-radius:4px; font-size:12px; color:#4287f5;">
+                                    Duração: {int(segment_duration//60)}m{int(segment_duration%60)}s
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create columns for video and controls
+                vid_col, info_col = st.columns([2, 1])
+                
+                with vid_col:
+                    # Display video preview with nice styling
+                    st.markdown("<div style='padding:5px; border-radius:8px; background-color:#f0f6ff;'>", unsafe_allow_html=True)
                     st.video(segment['video_path'])
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                with info_col:
+                    # Read subtitle content for information
+                    with open(segment['subtitle_path'], 'r', encoding='utf-8', errors='replace') as f:
+                        subtitle_content = f.read()
                     
-                    # Create expander for subtitles
-                    with st.expander("Ver Legendas Sincronizadas"):
-                        # Read subtitle content
-                        with open(segment['subtitle_path'], 'r', encoding='utf-8', errors='replace') as f:
-                            subtitle_content = f.read()
-                        
-                        # Count number of subtitle entries
-                        subtitle_count = subtitle_content.count('\n\n') + 1
-                        
-                        # Add informative header
-                        st.write(f"**{subtitle_count} legendas sincronizadas com este segmento**")
-                        st.write("As legendas abaixo foram ajustadas para sincronizar com este segmento de vídeo.")
-                        
-                        # Show subtitle content
-                        st.text_area(f"Legendas do Segmento {i+1}", subtitle_content, height=150)
-                        
-                        # Add download button for this segment's subtitles
-                        with open(segment['subtitle_path'], 'r') as f:
-                            st.download_button(
-                                label=f"Baixar legendas do Segmento {i+1}",
-                                data=f,
-                                file_name=f"segmento_{i+1}.srt",
-                                mime="text/plain"
-                            )
+                    # Count number of subtitle entries
+                    subtitle_count = subtitle_content.count('\n\n') + 1
+                    
+                    # Create an information card
+                    st.markdown(f"""
+                    <div style="background-color:#f7f9fc; padding:15px; border-radius:8px; height:100%; border:1px solid #e0e8f5;">
+                        <h4 style="color:#4287f5; font-size:16px; margin-bottom:15px; font-weight:600;">Informações do Segmento</h4>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:13px; color:#718096; margin-bottom:2px;">Legendas sincronizadas:</div>
+                            <div style="font-weight:500; color:#2d3748;">{subtitle_count} frases</div>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:13px; color:#718096; margin-bottom:2px;">Formato:</div>
+                            <div style="font-weight:500; color:#2d3748;">MP4 + SRT</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Subtitle and download options
+                st.markdown("<div style='margin-top:15px;'>", unsafe_allow_html=True)
+                
+                # Create tabs for actions
+                segment_tabs = st.tabs(["⬇️ Baixar", "📝 Ver Legendas"])
+                
+                with segment_tabs[0]:
+                    # Download buttons with better styling
+                    download_col1, download_col2 = st.columns(2)
+                    
+                    with download_col1:
+                        st.download_button(
+                            label="📹 Baixar Vídeo",
+                            data=open(segment['video_path'], 'rb'),
+                            file_name=f"segmento_{i+1}.mp4",
+                            mime="video/mp4",
+                            use_container_width=True
+                        )
+                    
+                    with download_col2:
+                        st.download_button(
+                            label="📄 Baixar Legendas",
+                            data=open(segment['subtitle_path'], 'r', encoding='utf-8', errors='replace'),
+                            file_name=f"segmento_{i+1}_legendas.srt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
+                
+                with segment_tabs[1]:
+                    # Parse SRT for cleaner preview
+                    import re
+                    # Remove timing info for preview
+                    preview_text = re.sub(r'\d+\s+\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}\s+', '', subtitle_content)
+                    # Remove numbers
+                    preview_text = re.sub(r'^\d+$', '', preview_text, flags=re.MULTILINE)
+                    # Clean up extra whitespace
+                    preview_text = re.sub(r'\n\s*\n', '\n\n', preview_text)
+                    
+                    # Show subtitles in a nice container
+                    st.markdown(f"""
+                    <div style="max-height:200px; overflow-y:auto; padding:15px; background-color:#f7f9fc; 
+                         border-radius:8px; border:1px solid #e0e8f5; font-size:14px; line-height:1.6;">
+                        {preview_text}
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Add a separator between segments except for the last one
+                if i < len(st.session_state.segments) - 1:
+                    # Insert a small ad after every second segment
+                    if (i + 1) % 2 == 0:
+                        st.markdown("<div style='margin:30px 0; text-align:center;'>", unsafe_allow_html=True)
+                        display_ad(
+                            ad_type="between-segments", 
+                            slot_id=ADSENSE_SLOTS.get("display", ADSENSE_SLOTS["banner"]), 
+                            client_id=ADSENSE_CLIENT_ID,
+                            width=300, 
+                            height=250
+                        )
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<hr style='margin:30px 0; border:none; height:1px; background-color:#e0e8f5;'>", unsafe_allow_html=True)
     else:
         st.info("👆 Por favor, envie e transcreva um vídeo primeiro na aba 'Enviar e Transcrever'.")
 
 # Tab 3: Download
 with tabs[2]:
     if st.session_state.processing_complete:
-        st.write("### Opções de Download")
+        st.markdown("""
+        <div style="margin-bottom:25px;">
+            <h3 style="color:#1e3a8a; font-size:22px; font-weight:600; margin-bottom:8px;">
+                ⬇️ Opções de Download
+            </h3>
+            <p style="color:#4a5568; font-size:15px; margin-top:0;">
+                Baixe seu vídeo e legendas em diversos formatos
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Sidebar ad
+        # Create a more attractive UI layout
         col_left, col_center, col_right = st.columns([1, 2, 1])
         
         with col_left:
-            # Affiliate ad on the left
+            # Affiliate ad on the left with better styling
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+                <h4 style="color:#4287f5; font-size:16px; margin-bottom:10px; font-weight:600;">Produtos Recomendados</h4>
+            </div>
+            """, unsafe_allow_html=True)
+            
             display_affiliate_ad(
                 product_name="Microfone para Vídeos",
                 product_url=AFFILIATE_LINKS["microphone"],
                 image_url=AFFILIATE_IMAGES["microphone"],
                 width=250,
-                height=250
+                height=250,
+                description="Melhore a qualidade do áudio dos seus vídeos com este microfone profissional"
             )
+            
+            # Add a second affiliate product
+            st.markdown("<div style='margin-top:20px;'>", unsafe_allow_html=True)
+            display_affiliate_ad(
+                product_name="Tripé para Câmera",
+                product_url=AFFILIATE_LINKS.get("tripod", AFFILIATE_LINKS["microphone"]),
+                image_url=AFFILIATE_IMAGES.get("tripod", AFFILIATE_IMAGES["microphone"]),
+                width=250,
+                height=250,
+                description="Estabilize suas filmagens com este tripé versátil"
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
         
         with col_right:
-            # Ad on the right
+            # Ad on the right with better styling
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+                <h4 style="color:#4287f5; font-size:16px; margin-bottom:10px; font-weight:600;">Ferramentas Recomendadas</h4>
+            </div>
+            """, unsafe_allow_html=True)
+            
             display_ad(
                 ad_type="display", 
-                slot_id=ADSENSE_SLOTS["display"], 
+                slot_id=ADSENSE_SLOTS.get("display", ADSENSE_SLOTS["banner"]), 
                 client_id=ADSENSE_CLIENT_ID,
                 width=250, 
                 height=250
             )
-        
+            
+            # Show video tools as affiliate ads
+            st.markdown("<div style='margin-top:25px;'>", unsafe_allow_html=True)
+            show_video_tools_ads()
+            st.markdown("</div>", unsafe_allow_html=True)
+            
         with col_center:
-            # Download full video with subtitles
-            st.write("#### Vídeo Completo")
-        
-        # Safely get the video filename
-        video_filename = "video_original.mp4"
-        if st.session_state.video_path and os.path.exists(st.session_state.video_path):
-            video_filename = os.path.basename(st.session_state.video_path)
+            # Create a better visual for download options
+            st.markdown("""
+            <div style="background-color:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:25px;">
+                <h4 style="color:#1e3a8a; font-size:18px; margin-bottom:15px; font-weight:600;">
+                    <span style="margin-right:8px;">📁</span> Arquivos para Download
+                </h4>
+                <p style="color:#718096; font-size:14px; margin-bottom:20px;">
+                    Todos os arquivos são processados localmente e ficam disponíveis apenas durante esta sessão
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        create_download_link(
-            st.session_state.video_path,
-            "Baixar Vídeo Original",
-            video_filename
-        )
-        
-        if st.session_state.subtitle_path:
-            with open(st.session_state.subtitle_path, 'r') as f:
-                st.download_button(
-                    label="Baixar Legendas Completas (SRT)",
-                    data=f,
-                    file_name="legendas_completas.srt",
-                    mime="text/plain"
-                )
-        
-        # Add option to download video with embedded subtitles
-        if st.button("Criar Vídeo com Legendas Incorporadas"):
-            with st.spinner("Incorporando legendas no vídeo..."):
-                video_processor = VideoProcessor()
-                embedded_video_path = video_processor.embed_subtitles(
-                    st.session_state.video_path,
-                    st.session_state.subtitle_path,
-                    os.path.join(st.session_state.temp_dir, "embedded_video.mp4")
-                )
-                
-                st.session_state.embedded_video_path = embedded_video_path
-                
-            st.success("Legendas incorporadas com sucesso!")
+            # Create a card for video download
+            st.markdown("""
+            <div style="margin-bottom:20px; padding:20px; background-color:#f0f6ff; border-radius:10px; border-left:4px solid #4287f5;">
+                <div style="display:flex; align-items:center; margin-bottom:15px;">
+                    <div style="font-size:24px; margin-right:15px;">🎬</div>
+                    <div>
+                        <h5 style="margin:0 0 5px 0; color:#1e3a8a; font-size:16px; font-weight:600;">Vídeo Original</h5>
+                        <div style="color:#718096; font-size:13px;">Arquivo MP4 sem alterações</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
             
-            create_download_link(
-                st.session_state.embedded_video_path,
-                "Baixar Vídeo com Legendas Incorporadas",
-                "video_com_legendas.mp4"
-            )
-        
-        # Download segments
-        if st.session_state.segments:
-            st.write("#### Segmentos de Vídeo")
+            # Safely get the video filename
+            video_filename = "video_original.mp4"
+            video_path = st.session_state.get("video_path", "")
             
-            for i, segment in enumerate(st.session_state.segments):
-                st.write(f"**Segmento {i+1}**")
+            if video_path and os.path.exists(video_path):
+                video_filename = os.path.basename(video_path)
                 
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    create_download_link(
-                        segment['video_path'],
-                        f"Baixar Vídeo do Segmento {i+1}",
-                        f"segmento_{i+1}.mp4"
+                # Add download button for the original video
+                with open(video_path, 'rb') as f:
+                    st.download_button(
+                        label="💾 Baixar Vídeo Original",
+                        data=f,
+                        file_name=video_filename,
+                        mime="video/mp4",
+                        use_container_width=True
                     )
-                
-                with col2:
-                    with open(segment['subtitle_path'], 'r') as f:
+            else:
+                st.warning("Arquivo de vídeo não disponível.")
+            
+            st.markdown("</div>", unsafe_allow_html=True)  # Close video card
+            
+            # Create a card for subtitles download
+            st.markdown("""
+            <div style="margin-bottom:20px; padding:20px; background-color:#f0f9ff; border-radius:10px; border-left:4px solid #38b2ac;">
+                <div style="display:flex; align-items:center; margin-bottom:15px;">
+                    <div style="font-size:24px; margin-right:15px;">📝</div>
+                    <div>
+                        <h5 style="margin:0 0 5px 0; color:#1e3a8a; font-size:16px; font-weight:600;">Legendas (SRT)</h5>
+                        <div style="color:#718096; font-size:13px;">Arquivo de legendas formato padrão SRT</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Add download button for the subtitles
+            subtitle_path = st.session_state.get("subtitle_path", "")
+            
+            if subtitle_path and os.path.exists(subtitle_path):
+                try:
+                    with open(subtitle_path, 'r', encoding='utf-8', errors='replace') as f:
+                        subtitle_data = f.read()
                         st.download_button(
-                            label=f"Baixar Legendas do Segmento {i+1}",
-                            data=f,
-                            file_name=f"segmento_{i+1}.srt",
-                            mime="text/plain"
+                            label="💾 Baixar Legendas SRT",
+                            data=subtitle_data,
+                            file_name="legendas_completas.srt",
+                            mime="text/plain",
+                            use_container_width=True
                         )
-                
-                # Add option to download segment with embedded subtitles
-                if st.button(f"Criar Segmento {i+1} com Legendas Incorporadas"):
-                    with st.spinner(f"Incorporando legendas no segmento {i+1}..."):
-                        video_processor = VideoProcessor()
-                        embedded_segment_path = video_processor.embed_subtitles(
-                            segment['video_path'],
-                            segment['subtitle_path'],
-                            os.path.join(st.session_state.temp_dir, f"embedded_segment_{i+1}.mp4")
-                        )
-                        
-                        segment['embedded_path'] = embedded_segment_path
-                        
-                    st.success(f"Legendas incorporadas no segmento {i+1} com sucesso!")
+                except Exception as e:
+                    st.error(f"Erro ao carregar legendas: {str(e)}")
+                    subtitle_data = ""
+            else:
+                st.warning("Arquivo de legendas não disponível.")
+                subtitle_data = ""
+            
+            # Subtitle preview
+            if len(subtitle_data) > 500:
+                subtitle_preview = subtitle_data[:500] + "..."
+            else:
+                subtitle_preview = subtitle_data
+            
+            # Tratar a substituição de quebras de linha antes do f-string    
+            subtitle_preview_html = subtitle_preview.replace('\n', '<br>')
+            
+            st.markdown(f"""
+            <div style="margin-top:10px; background-color:white; padding:10px; border-radius:6px; max-height:100px; overflow-y:auto; font-size:12px; font-family:monospace; color:#4a5568;">
+                {subtitle_preview_html}
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)  # Close subtitles card
+            
+            # Create a card for embedded subtitles
+            st.markdown("""
+            <div style="margin-bottom:20px; padding:20px; background-color:#f0f6f9; border-radius:10px; border-left:4px solid #805ad5;">
+                <div style="display:flex; align-items:center; margin-bottom:15px;">
+                    <div style="font-size:24px; margin-right:15px;">🎞️</div>
+                    <div>
+                        <h5 style="margin:0 0 5px 0; color:#1e3a8a; font-size:16px; font-weight:600;">Vídeo com Legendas Embutidas</h5>
+                        <div style="color:#718096; font-size:13px;">Arquivo MP4 com legendas permanentes</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Add a button to create a video with embedded subtitles
+            if st.button("🔄 Gerar Vídeo com Legendas Embutidas", use_container_width=True):
+                # Create a styled container for the processing
+                process_container = st.container()
+                with process_container:
+                    st.markdown("""
+                    <div style="padding:15px; background-color:white; border-radius:8px; margin:10px 0; border:1px solid #e0e8f5;">
+                        <h4 style="color:#4287f5; font-size:16px; margin-bottom:10px; font-weight:600;">
+                            Processando Vídeo
+                        </h4>
+                    """, unsafe_allow_html=True)
                     
-                    create_download_link(
-                        segment['embedded_path'],
-                        f"Baixar Segmento {i+1} com Legendas Incorporadas",
-                        f"segmento_{i+1}_com_legendas.mp4"
-                    )
+                    # Show progress
+                    progress_text = st.empty()
+                    progress_bar = st.progress(0)
+                    
+                    progress_text.write("🔄 Iniciando processamento...")
+                    progress_bar.progress(10)
+                    
+                    # Define output path
+                    output_video_path = os.path.join(st.session_state.temp_dir, "embedded_video.mp4")
+                    
+                    try:
+                        # Update progress
+                        progress_text.write("⚙️ Incorporando legendas no vídeo...")
+                        progress_bar.progress(30)
+                        
+                        # Embed subtitles into the video
+                        video_processor = VideoProcessor()
+                        output_path = video_processor.embed_subtitles(
+                            st.session_state.video_path,
+                            st.session_state.subtitle_path,
+                            output_video_path
+                        )
+                        
+                        st.session_state.embedded_video_path = output_path
+                        
+                        # Update progress
+                        progress_bar.progress(90)
+                        
+                        # Show success message
+                        progress_text.write("✅ Legendas incorporadas com sucesso!")
+                        progress_bar.progress(100)
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)  # Close processing container
+                        
+                        # Preview the video with better styling
+                        st.markdown("""
+                        <div style="margin:20px 0 15px 0;">
+                            <h5 style="color:#1e3a8a; font-size:16px; margin-bottom:10px; font-weight:600;">
+                                Prévia do Vídeo com Legendas
+                            </h5>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.video(output_path)
+                        
+                        # Add download button with better styling
+                        st.markdown("""
+                        <div style="margin:15px 0 10px 0;">
+                            <h5 style="color:#1e3a8a; font-size:16px; margin-bottom:10px; font-weight:600;">
+                                Download Disponível
+                            </h5>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        with open(output_path, 'rb') as f:
+                            st.download_button(
+                                label="💾 Baixar Vídeo com Legendas Embutidas",
+                                data=f,
+                                file_name="video_com_legendas.mp4",
+                                mime="video/mp4",
+                                use_container_width=True
+                            )
+                    
+                    except Exception as e:
+                        st.error(f"Erro ao incorporar legendas: {str(e)}")
+                        progress_bar.progress(0)
+                        st.markdown("</div>", unsafe_allow_html=True)  # Close processing container
+            
+            st.markdown("</div>", unsafe_allow_html=True)  # Close embedded subtitles card
+            
+            # If there are segments, show them too
+            if st.session_state.segments:
+                st.markdown("""
+                <div style="margin:30px 0 20px 0;">
+                    <h4 style="color:#1e3a8a; font-size:18px; margin-bottom:10px; font-weight:600;">
+                        <span style="margin-right:8px;">✂️</span> Segmentos de Vídeo
+                    </h4>
+                    <p style="color:#718096; font-size:14px; margin-bottom:15px;">
+                        Baixe os segmentos de vídeo que você criou anteriormente
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create a list of segments in cards
+                for i, segment in enumerate(st.session_state.segments):
+                    st.markdown(f"""
+                    <div style="margin-bottom:15px; padding:15px; background-color:#f9f9fd; border-radius:10px; border-left:4px solid #7f9cf5;">
+                        <div style="display:flex; align-items:center; margin-bottom:10px;">
+                            <div style="background-color:#7f9cf5; color:white; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px;">
+                                {i+1}
+                            </div>
+                            <div>
+                                <h5 style="margin:0; color:#1e3a8a; font-size:16px; font-weight:600;">Segmento {i+1}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Create columns for different download options
+                    download_col1, download_col2 = st.columns(2)
+                    
+                    with download_col1:
+                        with open(segment['video_path'], 'rb') as f:
+                            st.download_button(
+                                label=f"📹 Vídeo Segmento {i+1}",
+                                data=f,
+                                file_name=f"segmento_{i+1}.mp4",
+                                mime="video/mp4",
+                                use_container_width=True
+                            )
+                    
+                    with download_col2:
+                        with open(segment['subtitle_path'], 'r') as f:
+                            st.download_button(
+                                label=f"📄 Legendas Segmento {i+1}",
+                                data=f,
+                                file_name=f"segmento_{i+1}.srt",
+                                mime="text/plain",
+                                use_container_width=True
+                            )
+                    
+                    # Add a button for embedded subtitles but in a more elegant way
+                    segment_id = f"segment_{i+1}"
+                    segment_button_key = f"embed_button_{segment_id}"
+                    
+                    if st.button(f"🔄 Gerar Segmento {i+1} com Legendas Embutidas", key=segment_button_key, use_container_width=True):
+                        segment_process_container = st.container()
+                        with segment_process_container:
+                            st.markdown(f"""
+                            <div style="padding:15px; background-color:white; border-radius:8px; margin:10px 0; border:1px solid #e0e8f5;">
+                                <h4 style="color:#4287f5; font-size:16px; margin-bottom:10px; font-weight:600;">
+                                    Processando Segmento {i+1}
+                                </h4>
+                            """, unsafe_allow_html=True)
+                            
+                            segment_progress_text = st.empty()
+                            segment_progress_bar = st.progress(0)
+                            
+                            segment_progress_text.write("🔄 Iniciando processamento...")
+                            segment_progress_bar.progress(10)
+                            
+                            try:
+                                segment_progress_text.write(f"⚙️ Incorporando legendas no segmento {i+1}...")
+                                segment_progress_bar.progress(30)
+                                
+                                # Define output path for this segment
+                                embedded_segment_path = os.path.join(st.session_state.temp_dir, f"embedded_segment_{i+1}.mp4")
+                                
+                                # Embed subtitles into the segment
+                                video_processor = VideoProcessor()
+                                output_segment_path = video_processor.embed_subtitles(
+                                    segment['video_path'],
+                                    segment['subtitle_path'],
+                                    embedded_segment_path
+                                )
+                                
+                                # Store the path for later
+                                segment['embedded_path'] = output_segment_path
+                                
+                                segment_progress_bar.progress(90)
+                                segment_progress_text.write(f"✅ Legendas incorporadas no segmento {i+1} com sucesso!")
+                                segment_progress_bar.progress(100)
+                                
+                                st.markdown("</div>", unsafe_allow_html=True)  # Close processing container
+                                
+                                # Preview
+                                st.video(output_segment_path)
+                                
+                                # Download button
+                                with open(output_segment_path, 'rb') as f:
+                                    st.download_button(
+                                        label=f"💾 Baixar Segmento {i+1} com Legendas",
+                                        data=f,
+                                        file_name=f"segmento_{i+1}_com_legendas.mp4",
+                                        mime="video/mp4",
+                                        use_container_width=True
+                                    )
+                                
+                            except Exception as e:
+                                st.error(f"Erro ao incorporar legendas no segmento {i+1}: {str(e)}")
+                                segment_progress_bar.progress(0)
+                                st.markdown("</div>", unsafe_allow_html=True)  # Close processing container
+        
+        # Display a nice banner ad
+        st.markdown("<div style='margin:30px 0; text-align:center;'>", unsafe_allow_html=True)
+        display_ad(
+            ad_type="banner", 
+            slot_id=ADSENSE_SLOTS.get("leaderboard", ADSENSE_SLOTS["banner"]), 
+            client_id=ADSENSE_CLIENT_ID,
+            width=728, 
+            height=90
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Display support message with better styling
+        st.markdown("""
+        <div style="margin:30px 0; padding:20px; background-color:#f7f9fc; border-radius:10px; text-align:center; border:1px solid #e0e8f5;">
+            <h4 style="color:#1e3a8a; font-size:18px; margin-bottom:15px; font-weight:600;">
+                ❤️ Gostou da ferramenta?
+            </h4>
+            <p style="color:#4a5568; font-size:15px; margin-bottom:20px; max-width:600px; margin-left:auto; margin-right:auto;">
+                Esta aplicação é gratuita e mantida por mim. Se ela foi útil para você, considere fazer uma pequena doação para
+                ajudar a mantê-la online e continuar melhorando!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Three column layout for support options
+        support_col1, support_col2, support_col3 = st.columns(3)
+        
+        with support_col1:
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center; height:100%;">
+                <div style="font-size:28px; margin-bottom:10px;">☕</div>
+                <h5 style="color:#1e3a8a; font-size:16px; margin-bottom:10px; font-weight:600;">
+                    Pague um café
+                </h5>
+                <p style="color:#718096; font-size:14px; margin-bottom:15px;">
+                    Qualquer quantia é bem-vinda!
+                </p>
+                <a href="https://www.buymeacoffee.com/exemplo" target="_blank" style="display:inline-block; background-color:#FFDD00; color:#000000; font-weight:600; padding:8px 16px; border-radius:4px; text-decoration:none; font-size:14px;">
+                    Doar
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with support_col2:
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center; height:100%;">
+                <div style="font-size:28px; margin-bottom:10px;">⭐</div>
+                <h5 style="color:#1e3a8a; font-size:16px; margin-bottom:10px; font-weight:600;">
+                    Compartilhe
+                </h5>
+                <p style="color:#718096; font-size:14px; margin-bottom:15px;">
+                    Indique para amigos!
+                </p>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <a href="https://twitter.com/intent/tweet?text=Ferramenta%20incr%C3%ADvel%20para%20transcrever%20v%C3%ADdeos!" target="_blank" style="display:inline-block; background-color:#1DA1F2; color:white; font-weight:600; padding:8px 16px; border-radius:4px; text-decoration:none; font-size:14px;">
+                        Twitter
+                    </a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=https://example.com" target="_blank" style="display:inline-block; background-color:#4267B2; color:white; font-weight:600; padding:8px 16px; border-radius:4px; text-decoration:none; font-size:14px;">
+                        Facebook
+                    </a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with support_col3:
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:center; height:100%;">
+                <div style="font-size:28px; margin-bottom:10px;">📧</div>
+                <h5 style="color:#1e3a8a; font-size:16px; margin-bottom:10px; font-weight:600;">
+                    Contato
+                </h5>
+                <p style="color:#718096; font-size:14px; margin-bottom:15px;">
+                    Dúvidas ou sugestões?
+                </p>
+                <a href="mailto:contato@exemplo.com" style="display:inline-block; background-color:#805AD5; color:white; font-weight:600; padding:8px 16px; border-radius:4px; text-decoration:none; font-size:14px;">
+                    Enviar Email
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         st.info("Por favor, envie e transcreva um vídeo primeiro.")
 
