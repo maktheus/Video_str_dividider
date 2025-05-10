@@ -1,0 +1,54 @@
+# Ambiente e configurações
+.env
+venv/
+env/
+.venv/
+.streamlit/secrets.toml
+
+# Arquivos Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Arquivos temporários
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Arquivos de vídeo (podem ser grandes)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.srt
+uploads/
+downloads/
+output/
+
+# Outros
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+.cache/
+.coverage
+htmlcov/

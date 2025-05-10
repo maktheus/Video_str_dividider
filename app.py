@@ -17,10 +17,12 @@ st.set_page_config(
 # Importar configurações de anúncios
 from ad_config import ADSENSE_CLIENT_ID, ADSENSE_SLOTS, AFFILIATE_LINKS, AFFILIATE_IMAGES
 
-# Inject AdSense script into HTML head
+# Inject AdSense script into HTML head - carrega do arquivo .env via ad_config.py
 adsense_script = f"""
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ADSENSE_CLIENT_ID}"
      crossorigin="anonymous"></script>
+<!-- Google AdSense verificação de site -->
+<meta name="google-adsense-account" content="{ADSENSE_CLIENT_ID}">
 """
 st.markdown(adsense_script, unsafe_allow_html=True)
 

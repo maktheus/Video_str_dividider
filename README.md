@@ -79,6 +79,36 @@ O projeto requer Python 3.8+ e as seguintes bibliotecas:
 - yt-dlp
 - srt
 
+## Monetização
+
+Este projeto inclui opções de monetização que podem ser configuradas via arquivo `.env`:
+
+1. **Google AdSense:** Para receber dinheiro de anúncios exibidos no aplicativo
+2. **Links de Afiliados:** Para receber comissões de produtos recomendados
+3. **Doações:** Links personalizados para receber doações
+
+### Configuração do arquivo .env
+
+Para configurar a monetização, crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```
+# Google AdSense
+ADSENSE_CLIENT_ID=ca-pub-SEUCODIGO
+ADSENSE_SLOT_BANNER=SEUSLOT1
+ADSENSE_SLOT_DISPLAY=SEUSLOT2
+ADSENSE_SLOT_LEADERBOARD=SEUSLOT3
+
+# Links de afiliados
+AFFILIATE_LINK_MICROPHONE=https://amzn.to/seucódigo1
+AFFILIATE_LINK_SOFTWARE=https://amzn.to/seucódigo2
+
+# Links de suporte
+SUPPORT_LINK_COFFEE=https://www.buymeacoffee.com/seuusername
+SUPPORT_LINK_GITHUB=https://github.com/seuusername/video-transcription-tool
+```
+
+**Importante:** O arquivo `.env` é automaticamente ignorado pelo `.gitignore` para manter suas credenciais seguras.
+
 ## Notas
 
 - A transcrição com Whisper pode levar vários minutos dependendo do tamanho do vídeo e da capacidade do computador.

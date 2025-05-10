@@ -74,16 +74,19 @@ def display_affiliate_ad(product_name="Amazon Echo", product_url="https://amzn.t
 
 def display_support_message():
     """Display a message asking for support with donation links."""
-    st.markdown("""
+    # Importar configurações aqui para evitar importação circular
+    from ad_config import SUPPORT_LINKS
+    
+    st.markdown(f"""
     <div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:10px 0;">
         <h4 style="color:#1e3a8a; margin-top:0;">💙 Apoie este projeto</h4>
         <p>
             Esta ferramenta é gratuita para uso. Se ela ajudou você, considere apoiar o seu desenvolvimento!
         </p>
-        <a href="https://www.buymeacoffee.com/seuusername" target="_blank" style="display:inline-block; background-color:#FFDD00; color:#000000; padding:5px 15px; border-radius:5px; text-decoration:none; font-weight:bold; margin-right:10px;">
+        <a href="{SUPPORT_LINKS['coffee']}" target="_blank" style="display:inline-block; background-color:#FFDD00; color:#000000; padding:5px 15px; border-radius:5px; text-decoration:none; font-weight:bold; margin-right:10px;">
             ☕ Compre-me um café
         </a>
-        <a href="https://github.com/seuusername/video-transcription-tool" target="_blank" style="display:inline-block; background-color:#24292e; color:#ffffff; padding:5px 15px; border-radius:5px; text-decoration:none; font-weight:bold;">
+        <a href="{SUPPORT_LINKS['github']}" target="_blank" style="display:inline-block; background-color:#24292e; color:#ffffff; padding:5px 15px; border-radius:5px; text-decoration:none; font-weight:bold;">
             ⭐ Star no GitHub
         </a>
     </div>
