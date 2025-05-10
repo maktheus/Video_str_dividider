@@ -19,38 +19,62 @@ A interface web suporta:
 
 ## Interface de Linha de Comando (CLI)
 
-O projeto também inclui uma CLI para processamento em lote:
+### Instalação como Pacote Python
+
+Você pode instalar este projeto como um pacote Python para tornar os comandos da CLI disponíveis globalmente no seu sistema:
+
+```bash
+# Instalação a partir do diretório do projeto
+pip install -e .
+
+# Ou instalar a partir do GitHub
+pip install git+https://github.com/seuusername/video-transcription-tool.git
+```
+
+Após a instalação, você pode usar o comando `videotranscricao` de qualquer lugar no seu sistema:
+
+```bash
+# Ver ajuda disponível
+videotranscricao --help
+```
+
+### Uso Direto (sem instalação)
+
+Alternativamente, você pode usar a CLI diretamente:
 
 ```bash
 # Tornar o script executável (se necessário)
 chmod +x cli.py
+
+# Executar diretamente
+python cli.py COMANDO [OPÇÕES]
 ```
 
 ### Exemplos de Uso da CLI
 
 #### Transcrever um vídeo
 ```bash
-python cli.py transcribe --input video.mp4 --output legendas.srt
+videotranscricao transcribe --input video.mp4 --output legendas.srt
 ```
 
 #### Baixar e transcrever vídeo do YouTube
 ```bash
-python cli.py youtube --url "https://www.youtube.com/watch?v=ID_DO_VIDEO" --output video_baixado.mp4 --transcribe
+videotranscricao youtube --url "https://www.youtube.com/watch?v=ID_DO_VIDEO" --output video_baixado.mp4 --transcribe
 ```
 
 #### Dividir um vídeo em partes iguais
 ```bash
-python cli.py split --input video.mp4 --subtitle legendas.srt --parts 3 --output pasta_saida
+videotranscricao split --input video.mp4 --subtitle legendas.srt --parts 3 --output pasta_saida
 ```
 
 #### Dividir um vídeo em pontos específicos (segundos)
 ```bash
-python cli.py split --input video.mp4 --subtitle legendas.srt --timestamps 30,60,90 --output pasta_saida
+videotranscricao split --input video.mp4 --subtitle legendas.srt --timestamps 30,60,90 --output pasta_saida
 ```
 
 #### Incorporar legendas no vídeo
 ```bash
-python cli.py embed --input video.mp4 --subtitle legendas.srt --output video_com_legendas.mp4
+videotranscricao embed --input video.mp4 --subtitle legendas.srt --output video_com_legendas.mp4
 ```
 
 ### Ajuda Completa
@@ -58,16 +82,16 @@ python cli.py embed --input video.mp4 --subtitle legendas.srt --output video_com
 Para ver todas as opções disponíveis:
 
 ```bash
-python cli.py --help
+videotranscricao --help
 ```
 
 Para ajuda específica de um comando:
 
 ```bash
-python cli.py transcribe --help
-python cli.py youtube --help
-python cli.py split --help
-python cli.py embed --help
+videotranscricao transcribe --help
+videotranscricao youtube --help
+videotranscricao split --help
+videotranscricao embed --help
 ```
 
 ## Requisitos

@@ -1,0 +1,18 @@
+include README.md
+include LICENSE
+include requirements.txt
+include *.py
+include .streamlit/config.toml
+
+# Excluir arquivos desnecessários
+exclude .env
+exclude .gitignore
+exclude *.pyc
+exclude __pycache__
+exclude .git
+exclude .github
+exclude .pytest_cache
+exclude *.mp4
+exclude *.srt
+exclude venv
+exclude env
