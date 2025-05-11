@@ -89,15 +89,20 @@ class SubtitleProcessor:
             whisper_output_dir = os.path.join(os.path.dirname(output_path), "whisper_output")
             os.makedirs(whisper_output_dir, exist_ok=True)
             
-            # Use Whisper CLI to transcribe - using the base model for better accuracy while still being reasonably fast
+            # Use Whisper CLI to transcribe - using the tiny model for faster transcription
+            # Added beam_size=1 and faster options to improve speed
             whisper_cmd = [
                 "whisper", temp_audio_file, 
-                "--model", "base", 
+                "--model", "tiny", 
                 "--output_format", "srt", 
-                "--output_dir", whisper_output_dir
+                "--output_dir", whisper_output_dir,
+                "--beam_size", "1",           # Smaller beam size = faster
+                "--best_of", "1",             # Fewer samples = faster
+                "--condition_on_previous_text", "False", # Less context processing = faster
+                "--temperature", "0"          # Deterministic = faster
             ]
             
-            st.info("Iniciando transcrição com Whisper (modelo base). A transcrição geralmente leva cerca de 2x a duração do vídeo original.")
+            st.info("Iniciando transcrição com Whisper (modo rápido). A transcrição agora será muito mais rápida.")
             
             # Run whisper - this will block until complete
             result = subprocess.run(whisper_cmd, capture_output=True, text=True)
@@ -281,16 +286,20 @@ class SubtitleProcessor:
             whisper_output_dir = os.path.join(os.path.dirname(output_path), "whisper_output")
             os.makedirs(whisper_output_dir, exist_ok=True)
             
-            # Use Whisper CLI to transcribe with base model for better quality
+            # Use Whisper CLI to transcribe with tiny model and speed optimizations
             whisper_cmd = [
                 "whisper", temp_audio_file, 
-                "--model", "base", 
+                "--model", "tiny", 
                 "--output_format", "srt", 
-                "--output_dir", whisper_output_dir
+                "--output_dir", whisper_output_dir,
+                "--beam_size", "1",           # Smaller beam size = faster
+                "--best_of", "1",             # Fewer samples = faster
+                "--condition_on_previous_text", "False", # Less context processing = faster
+                "--temperature", "0"          # Deterministic = faster
             ]
             
-            # Update message to reflect accurate time estimation
-            status['message'] = "⏳ Etapa 2/3: Transcrevendo o áudio (leva em média 2x a duração do vídeo)..."
+            # Update message to reflect faster processing
+            status['message'] = "⏳ Etapa 2/3: Transcrevendo o áudio no modo rápido (otimizado para velocidade)..."
             self._save_status(status)
             
             # Run whisper

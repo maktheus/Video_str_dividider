@@ -183,8 +183,8 @@ with tabs[0]:
             duration_min = int(duration // 60)
             duration_sec = int(duration % 60)
             
-            # Calcula o tempo estimado de transcrição (cerca de 2x a duração do vídeo)
-            est_transcription_time = max(1, int(duration_min * 2))
+            # Calcula o tempo estimado de transcrição com otimizações (cerca de 0.75x a duração do vídeo)
+            est_transcription_time = max(1, int(duration_min * 0.75))
             
             st.markdown(f"""
             <div style="background-color:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); height:100%;">
@@ -205,9 +205,9 @@ with tabs[0]:
                     <div style="font-size:14px; color:#718096; margin-bottom:2px;">Tempo estimado para transcrição:</div>
                     <div style="font-weight:500; color:#2d3748;">~{est_transcription_time} minutos</div>
                 </div>
-                <div style="margin-top:15px; padding:10px; background-color:#e6f7ff; border-radius:5px; border-left:3px solid #4287f5;">
+                <div style="margin-top:15px; padding:10px; background-color:#ebfbee; border-radius:5px; border-left:3px solid #48bb78;">
                     <div style="font-size:12px; color:#2d3748;">
-                        <strong>Nota:</strong> A transcrição utiliza o modelo <strong>base</strong> do Whisper para um equilíbrio entre velocidade e qualidade.
+                        <strong>Nota:</strong> A transcrição utiliza o modelo <strong>tiny</strong> do Whisper com otimizações para máxima velocidade.
                     </div>
                 </div>
             </div>
@@ -245,14 +245,14 @@ with tabs[0]:
             # Destaque para o botão com estilo personalizado antes do botão real
             st.markdown("""
             <div style="text-align:center; margin-bottom:10px;">
-                <span style="background-color:#4caf50; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:500;">
-                    MODELO BASE DO WHISPER
+                <span style="background-color:#f9a825; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:500;">
+                    MODO RÁPIDO DE TRANSCRIÇÃO
                 </span>
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🔊 Iniciar Transcrição com IA", 
-                        help="Utiliza o modelo base do Whisper para transcrever o áudio em texto. Esta operação leva cerca de 2x a duração do vídeo.",
+            if st.button("🔊 Iniciar Transcrição Rápida", 
+                        help="Utiliza o modelo tiny do Whisper otimizado para transcrever o áudio em texto. Esta operação leva cerca de 75% da duração do vídeo.",
                         use_container_width=True,
                         type="primary") or st.session_state.transcription_started:
                 # Set flag to indicate transcription has started
@@ -309,14 +309,14 @@ with tabs[0]:
                         progress_value = transcription_status.get('progress', 0)
                         st.progress(progress_value)
                         
-                        # Show estimated time with more realistic estimate
+                        # Show estimated time with faster processing
                         duration = video_processor.get_video_duration(st.session_state.video_path)
                         video_minutes = int(duration // 60)
                         
-                        # Estimating 1.5x to 2x the video duration for processing
-                        est_time = max(1, int(video_minutes * 2))
+                        # Com as otimizações, o tempo estimado agora é de 0.5x a 1x a duração do vídeo
+                        est_time = max(1, int(video_minutes * 0.75))
                         
-                        st.info(f"⏱️ Transcrição em andamento. Tempo estimado: cerca de {est_time} minutos para um vídeo de {video_minutes} minutos.")
+                        st.info(f"⏱️ Transcrição em andamento (modo rápido). Tempo estimado: cerca de {est_time} minutos para um vídeo de {video_minutes} minutos.")
                         
                         # Discretely show a small ad while they wait
                         st.markdown("<div style='margin:20px 0;'>", unsafe_allow_html=True)
