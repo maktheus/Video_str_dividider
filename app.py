@@ -137,20 +137,88 @@ with tabs[0]:
                                    placeholder="https://www.youtube.com/watch?v=...")
         
         if youtube_url:
-            # Adicionar opções para download de legendas
-            option_cols = st.columns([3, 2])
+            st.markdown("<hr style='margin: 20px 0 15px 0; border:none; height:1px; background-color:#e0e8f5;'>", unsafe_allow_html=True)
             
-            with option_cols[0]:
+            st.markdown("""
+            <div style="margin:10px 0 20px 0;">
+                <h4 style="color:#1e3a8a; font-size:16px; font-weight:600; margin-bottom:8px;">
+                    ⚙️ Configurações de Download e Processamento
+                </h4>
+                <p style="color:#4a5568; font-size:14px; margin-top:0;">
+                    Configure as opções antes de iniciar o download do vídeo
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Configurações de download
+            config_cols = st.columns([1, 1])
+            
+            with config_cols[0]:
+                # Configurações de download
+                st.markdown("<p style='font-weight:500; font-size:15px;'>Opções de Download</p>", unsafe_allow_html=True)
+                
                 # Opção para baixar com legendas
                 download_with_subs = st.checkbox("Baixar legendas disponíveis no YouTube", 
-                                               value=True,
-                                               help="Se disponíveis, baixa as legendas oficiais ou automáticas do YouTube junto com o vídeo")
-            
-            with option_cols[1]:
+                                              value=True,
+                                              help="Se disponíveis, baixa as legendas oficiais ou automáticas do YouTube junto com o vídeo")
+                
                 # Opção só para legendas
                 subs_only = st.checkbox("Apenas legendas (sem vídeo)", 
-                                      value=False,
-                                      help="Baixa somente as legendas, sem o vídeo")
+                                     value=False,
+                                     help="Baixa somente as legendas, sem o vídeo")
+                
+                # Qualidade do vídeo para download
+                video_quality_options = {
+                    'low': "Baixa - Menor arquivo, download rápido",
+                    'medium': "Média - 720p, bom equilíbrio",
+                    'high': "Alta - Melhor resolução disponível"
+                }
+                
+                download_quality = st.selectbox(
+                    "Qualidade do vídeo",
+                    options=list(video_quality_options.keys()),
+                    format_func=lambda x: video_quality_options.get(x, x),
+                    index=1,  # Medium por padrão
+                    help="Selecione a qualidade do vídeo a ser baixado do YouTube"
+                )
+                
+            with config_cols[1]:
+                # Configurações de transcrição (apenas se não for somente legendas)
+                if not subs_only:
+                    st.markdown("<p style='font-weight:500; font-size:15px;'>Opções de Transcrição</p>", unsafe_allow_html=True)
+                
+                    # Modelo Whisper
+                    model_display = {
+                        "tiny": "Tiny - Mais rápido (menor precisão)",
+                        "base": "Base - Equilíbrio velocidade/precisão",
+                        "small": "Small - Maior precisão (mais lento)"
+                    }
+                    
+                    whisper_model = st.selectbox(
+                        "Modelo de transcrição",
+                        options=["tiny", "base", "small"],
+                        format_func=lambda x: model_display.get(x, x),
+                        index=0,
+                        help="Escolha o modelo do Whisper para a transcrição. Modelos maiores são mais precisos, mas mais lentos."
+                    )
+                    
+                    # Qualidade da transcrição
+                    quality_display = {
+                        "fast": "Rápida - Otimizada para velocidade",
+                        "balanced": "Balanceada - Bom equilíbrio",
+                        "high": "Alta - Máxima precisão (mais lenta)"
+                    }
+                    
+                    quality_preset = st.selectbox(
+                        "Qualidade da transcrição",
+                        options=["fast", "balanced", "high"],
+                        format_func=lambda x: quality_display.get(x, x),
+                        index=0,
+                        help="Configure o nível de qualidade da transcrição."
+                    )
+            
+            # Botão destacado para iniciar o processamento
+            st.markdown("<div style='margin-top:20px;'>", unsafe_allow_html=True)
             
             # Ações disponíveis baseadas nas opções
             action_cols = st.columns([2, 2, 1])
@@ -158,13 +226,24 @@ with tabs[0]:
             with action_cols[0]:
                 if not subs_only:
                     # Botão para baixar vídeo (com ou sem legendas)
-                    if st.button("📥 Baixar e Processar Vídeo", 
-                               help="Baixa o vídeo do YouTube e prepara para transcrição" + (" (com legendas originais)" if download_with_subs else ""),
-                               use_container_width=True):
+                    process_button_label = "📥 Baixar e Processar Vídeo"
+                    process_help_text = "Baixa o vídeo do YouTube e prepara para transcrição" + (" (com legendas originais)" if download_with_subs else "")
+                    
+                    if st.button(process_button_label, 
+                               help=process_help_text,
+                               use_container_width=True,
+                               type="primary"):  # Botão destacado
                         try:
                             with st.spinner("🔄 Baixando do YouTube..."):
                                 video_processor = VideoProcessor()
-                                result = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir, download_with_subs)
+                                
+                                # Passar a qualidade selecionada para o download
+                                result = video_processor.download_youtube_video(
+                                    youtube_url, 
+                                    st.session_state.temp_dir, 
+                                    download_with_subs,
+                                    quality=download_quality
+                                )
                                 
                                 # Handle subtitle result
                                 if download_with_subs and isinstance(result, dict):
@@ -184,6 +263,9 @@ with tabs[0]:
                                 else:
                                     st.session_state.video_path = result
                                     st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
+                                    
+
+                                
                         except Exception as e:
                             st.error(f"❌ Erro ao baixar vídeo: {str(e)}")
             
@@ -330,11 +412,15 @@ with tabs[0]:
                 "base": "Base - Equilíbrio velocidade/precisão",
                 "small": "Small - Maior precisão (mais lento)"
             }
+            
+            # Usar modelo salvo da etapa anterior (se existir)
+            default_model = st.session_state.get("whisper_model", "tiny")
+            
             whisper_model = st.selectbox(
                 "Modelo de transcrição",
                 options=["tiny", "base", "small"],
                 format_func=lambda x: model_display.get(x, x),
-                index=0,
+                index=["tiny", "base", "small"].index(default_model) if default_model in ["tiny", "base", "small"] else 0,
                 help="Escolha o modelo do Whisper. Modelos maiores são mais precisos, mas mais lentos."
             )
             
@@ -344,11 +430,15 @@ with tabs[0]:
                 "balanced": "Balanceada - Bom equilíbrio",
                 "high": "Alta - Máxima precisão (mais lenta)"
             }
+            
+            # Usar qualidade salva da etapa anterior (se existir)
+            default_quality = st.session_state.get("quality_preset", "fast")
+            
             quality_preset = st.selectbox(
                 "Qualidade da transcrição",
                 options=["fast", "balanced", "high"],
                 format_func=lambda x: quality_display.get(x, x),
-                index=0,
+                index=["fast", "balanced", "high"].index(default_quality) if default_quality in ["fast", "balanced", "high"] else 0,
                 help="Configure o nível de qualidade da transcrição."
             )
             
