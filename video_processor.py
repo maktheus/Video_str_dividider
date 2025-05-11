@@ -265,8 +265,8 @@ class VideoProcessor:
         # Create timestamps for splitting
         timestamps = [i * segment_duration for i in range(1, num_parts)]
         
-        # Split the video using custom timestamps
-        return self.split_video_custom_timestamps(video_path, subtitle_path, timestamps, output_dir)
+        # Split the video using custom timestamps with the specified quality
+        return self.split_video_custom_timestamps(video_path, subtitle_path, timestamps, output_dir, quality=quality)
     
     def split_video_custom_timestamps(self, video_path, subtitle_path, timestamps, output_dir, quality="medium"):
         """Split a video at custom timestamps and generate corresponding subtitles.

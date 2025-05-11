@@ -578,6 +578,27 @@ with tabs[1]:
         st.write("#### Configurar Divisão")
         st.write("Especifique como você deseja dividir o vídeo:")
         
+        # Opções de qualidade de vídeo
+        quality_cols = st.columns([3, 2])
+        with quality_cols[0]:
+            video_quality = st.select_slider(
+                "Qualidade do vídeo:",
+                options=["low", "medium", "high"],
+                value="medium",
+                format_func=lambda x: {
+                    "low": "Baixa (mais rápido)",
+                    "medium": "Média (equilibrado)",
+                    "high": "Alta (qualidade máxima)"
+                }.get(x, x)
+            )
+            
+        with quality_cols[1]:
+            st.info({
+                "low": "⚡ Processamento rápido, qualidade menor",
+                "medium": "⚖️ Bom equilíbrio velocidade/qualidade",
+                "high": "🔍 Máxima qualidade, mais lento"
+            }.get(video_quality))
+        
         # Option for splitting method
         split_method = st.radio(
             "Escolha o método de divisão:",
