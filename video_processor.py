@@ -12,13 +12,17 @@ class VideoProcessor:
         """Initialize the VideoProcessor class."""
         self.subtitle_processor = SubtitleProcessor()
         
-    def download_youtube_video(self, youtube_url, output_dir, download_subtitles=False):
+    def download_youtube_video(self, youtube_url, output_dir, download_subtitles=False, quality="medium"):
         """Download a video from YouTube using yt-dlp, with option for subtitles.
         
         Args:
             youtube_url (str): URL of the YouTube video.
             output_dir (str): Directory to save the downloaded video.
             download_subtitles (bool): Whether to download subtitles.
+            quality (str): Quality preset for downloading ('low', 'medium', 'high').
+                - low: Menor resolução, download rápido, arquivo menor
+                - medium: Resolução intermediária, bom equilíbrio
+                - high: Melhor resolução disponível, arquivo maior
             
         Returns:
             dict: Dictionary with paths to the downloaded files or str path if no subtitles.
@@ -26,6 +30,14 @@ class VideoProcessor:
         try:
             # Create a progress message
             st.write("Conectando ao YouTube...")
+            
+            # Informar a qualidade selecionada
+            quality_labels = {
+                'low': 'baixa (mais rápido, arquivo menor)',
+                'medium': 'média (720p, equilíbrio)',
+                'high': 'alta (melhor resolução disponível)'
+            }
+            st.info(f"Qualidade de download: {quality_labels.get(quality, 'média')}")
             
             # Generate an output filename with timestamp to avoid conflicts
             timestamp = int(time.time())
@@ -35,9 +47,16 @@ class VideoProcessor:
             # Ensure output directory exists
             os.makedirs(output_dir, exist_ok=True)
             
-            # Configure yt-dlp options
+            # Definir a configuração de formato baseada na qualidade selecionada
+            format_config = {
+                'low': 'worst[ext=mp4]',          # Menor qualidade disponível (mais rápido, menor arquivo)
+                'medium': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]',  # Qualidade média (720p)
+                'high': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]'   # Melhor qualidade
+            }
+            
+            # Configure yt-dlp options with selected quality
             ydl_opts = {
-                'format': 'best[ext=mp4]',  # Best quality in mp4 format
+                'format': format_config.get(quality, format_config['medium']),  # Get format based on quality
                 'outtmpl': output_path,     # Output path
                 'quiet': True,              # Less verbose output
                 'no_warnings': True,        # No warnings
