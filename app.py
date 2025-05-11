@@ -183,6 +183,9 @@ with tabs[0]:
             duration_min = int(duration // 60)
             duration_sec = int(duration % 60)
             
+            # Calcula o tempo estimado de transcrição (cerca de 2x a duração do vídeo)
+            est_transcription_time = max(1, int(duration_min * 2))
+            
             st.markdown(f"""
             <div style="background-color:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05); height:100%;">
                 <h4 style="color:#4287f5; font-size:16px; margin-bottom:15px; font-weight:600;">Informações do Vídeo</h4>
@@ -198,6 +201,15 @@ with tabs[0]:
                     <div style="font-size:14px; color:#718096; margin-bottom:2px;">Tamanho estimado da transcrição:</div>
                     <div style="font-weight:500; color:#2d3748;">~{int(duration * 1.5)} palavras</div>
                 </div>
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:14px; color:#718096; margin-bottom:2px;">Tempo estimado para transcrição:</div>
+                    <div style="font-weight:500; color:#2d3748;">~{est_transcription_time} minutos</div>
+                </div>
+                <div style="margin-top:15px; padding:10px; background-color:#e6f7ff; border-radius:5px; border-left:3px solid #4287f5;">
+                    <div style="font-size:12px; color:#2d3748;">
+                        <strong>Nota:</strong> A transcrição utiliza o modelo <strong>base</strong> do Whisper para um equilíbrio entre velocidade e qualidade.
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -208,14 +220,39 @@ with tabs[0]:
         if 'transcription_complete' not in st.session_state:
             st.session_state.transcription_complete = False
         
-        # Elegante botão de transcrição
+        # Instruções e avisos importantes antes da transcrição
+        st.markdown(f"""
+        <div style="margin:25px 0 15px 0; padding:15px; background-color:#fff7e3; border-radius:8px; border-left:4px solid #f6ad55;">
+            <h4 style="color:#c05621; margin-top:0; font-size:16px; font-weight:600;">⚠️ Informações importantes</h4>
+            <p style="color:#4a5568; margin-bottom:5px; font-size:14px;">
+                • A transcrição leva em média <strong>{est_transcription_time} minutos</strong> para este vídeo
+            </p>
+            <p style="color:#4a5568; margin-bottom:5px; font-size:14px;">
+                • Todo o processamento é feito localmente em seu computador
+            </p>
+            <p style="color:#4a5568; margin-bottom:0; font-size:14px;">
+                • Não feche esta página durante o processamento
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Elegante botão de transcrição com colunas para melhor layout
         st.markdown("<div style='margin:25px 0;'>", unsafe_allow_html=True)
         
         # Check if we should start transcription
         transcribe_col1, transcribe_col2, transcribe_col3 = st.columns([1, 2, 1])
         with transcribe_col2:
+            # Destaque para o botão com estilo personalizado antes do botão real
+            st.markdown("""
+            <div style="text-align:center; margin-bottom:10px;">
+                <span style="background-color:#4caf50; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:500;">
+                    MODELO BASE DO WHISPER
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+            
             if st.button("🔊 Iniciar Transcrição com IA", 
-                        help="Utiliza o modelo Whisper para transcrever o áudio em texto",
+                        help="Utiliza o modelo base do Whisper para transcrever o áudio em texto. Esta operação leva cerca de 2x a duração do vídeo.",
                         use_container_width=True,
                         type="primary") or st.session_state.transcription_started:
                 # Set flag to indicate transcription has started
