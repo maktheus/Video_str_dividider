@@ -1264,6 +1264,31 @@ with tabs[2]:
                     segment_id = f"segment_{i+1}"
                     segment_button_key = f"embed_button_{segment_id}"
                     
+                    # Layout melhorado para qualidade de vídeo
+                    quality_cols = st.columns([2, 3])
+                    
+                    with quality_cols[0]:
+                        # Qualidade de vídeo para este segmento
+                        segment_quality = st.select_slider(
+                            f"Qualidade - Segmento {i+1}:",
+                            options=["low", "medium", "high"],
+                            value="medium",
+                            key=f"segment_quality_{i}",
+                            format_func=lambda x: {
+                                "low": "Baixa",
+                                "medium": "Média",
+                                "high": "Alta"
+                            }.get(x, x)
+                        )
+                    
+                    with quality_cols[1]:
+                        # Ícone e descrição mais compactos
+                        st.info({
+                            "low": "⚡ Rápido, menor tamanho",
+                            "medium": "⚖️ Equilibrado",
+                            "high": "🔍 Alta qualidade, maior arquivo"
+                        }.get(segment_quality))
+                    
                     if st.button(f"🔄 Gerar Segmento {i+1} com Legendas Embutidas", key=segment_button_key, use_container_width=True):
                         segment_process_container = st.container()
                         with segment_process_container:
@@ -1287,12 +1312,13 @@ with tabs[2]:
                                 # Define output path for this segment
                                 embedded_segment_path = os.path.join(st.session_state.temp_dir, f"embedded_segment_{i+1}.mp4")
                                 
-                                # Embed subtitles into the segment
+                                # Embed subtitles into the segment with selected quality
                                 video_processor = VideoProcessor()
                                 output_segment_path = video_processor.embed_subtitles(
                                     segment['video_path'],
                                     segment['subtitle_path'],
-                                    embedded_segment_path
+                                    embedded_segment_path,
+                                    quality=segment_quality
                                 )
                                 
                                 # Store the path for later
