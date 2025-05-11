@@ -24,12 +24,21 @@ class SubtitleProcessor:
             'result_path': None
         }
     
-    def transcribe_video(self, video_path, output_path):
+    def transcribe_video(self, video_path, output_path, model="tiny", quality_preset="fast"):
         """Transcribe a video file using Whisper CLI and save as SRT.
         
         Args:
             video_path (str): Path to the video file.
             output_path (str): Path to save the SRT file.
+            model (str): Whisper model to use ('tiny', 'base', 'small', 'medium').
+                - tiny: Mais rápido, menor qualidade (~75% do tempo do vídeo)
+                - base: Equilíbrio entre velocidade e qualidade (~1x tempo do vídeo)
+                - small: Boa qualidade, mais lento (~1.5x tempo do vídeo)
+                - medium: Melhor qualidade, mais lento (~2-3x tempo do vídeo)
+            quality_preset (str): Preset de qualidade ('fast', 'balanced', 'high').
+                - fast: Otimizado para velocidade, pode ter mais erros
+                - balanced: Bom equilíbrio de velocidade/qualidade
+                - high: Máxima qualidade, processamento mais lento
             
         Returns:
             str: Path to the generated SRT file.
@@ -68,10 +77,11 @@ class SubtitleProcessor:
             # Extract audio from video to temporary file
             temp_audio_file = os.path.join(os.path.dirname(output_path), f"temp_audio.wav")
             
-            # Use ffmpeg command to extract audio
+            # Use ffmpeg command to extract audio with qualidade melhorada
             ffmpeg_cmd = [
                 "ffmpeg", "-i", video_path, 
-                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                "-vn", "-acodec", "pcm_s16le", "-ar", "24000", "-ac", "1",
+                "-af", "highpass=f=200,lowpass=f=3000,volume=1.5",  # Filtro de áudio para melhorar a voz
                 "-y", temp_audio_file
             ]
             
@@ -89,20 +99,41 @@ class SubtitleProcessor:
             whisper_output_dir = os.path.join(os.path.dirname(output_path), "whisper_output")
             os.makedirs(whisper_output_dir, exist_ok=True)
             
-            # Use Whisper CLI to transcribe - using the tiny model for faster transcription
-            # Added beam_size=1 and faster options to improve speed
-            whisper_cmd = [
-                "whisper", temp_audio_file, 
-                "--model", "tiny", 
-                "--output_format", "srt", 
-                "--output_dir", whisper_output_dir,
-                "--beam_size", "1",           # Smaller beam size = faster
-                "--best_of", "1",             # Fewer samples = faster
-                "--condition_on_previous_text", "False", # Less context processing = faster
-                "--temperature", "0"          # Deterministic = faster
-            ]
+            # Configure Whisper parameters based on model and quality preset
+            whisper_cmd = ["whisper", temp_audio_file, "--output_format", "srt", "--output_dir", whisper_output_dir]
             
-            st.info("Iniciando transcrição com Whisper (modo rápido). A transcrição agora será muito mais rápida.")
+            # Add model parameter
+            whisper_cmd.extend(["--model", model])
+            
+            # Configure quality settings based on preset
+            if quality_preset == "fast":
+                # Fastest: Minimalistic settings for speed
+                whisper_cmd.extend([
+                    "--beam_size", "1",             # Smaller beam size = faster
+                    "--best_of", "1",               # Fewer samples = faster
+                    "--condition_on_previous_text", "False",  # Less context = faster
+                    "--temperature", "0"            # No randomness = faster
+                ])
+                mode_info = f"modo rápido (modelo {model})"
+            elif quality_preset == "balanced":
+                # Balanced: Good quality with reasonable speed
+                whisper_cmd.extend([
+                    "--beam_size", "3",             # Medium beam size
+                    "--best_of", "2",               # Consider a few alternatives
+                    "--temperature", "0"            # Still deterministic
+                ])
+                mode_info = f"modo balanceado (modelo {model})"
+            else:  # "high"
+                # High quality: Best settings for accuracy
+                whisper_cmd.extend([
+                    "--beam_size", "5",             # Larger beam size = better quality
+                    "--best_of", "5",               # Consider more alternatives
+                    "--condition_on_previous_text", "True",  # Better context handling
+                    "--temperature", "0.2"          # Slight variability for better results
+                ])
+                mode_info = f"modo alta qualidade (modelo {model})"
+                
+            st.info(f"Iniciando transcrição com Whisper em {mode_info}.")
             
             # Run whisper - this will block until complete
             result = subprocess.run(whisper_cmd, capture_output=True, text=True)
@@ -161,12 +192,14 @@ class SubtitleProcessor:
             
             return output_path
     
-    def transcribe_video_async(self, video_path, output_path):
+    def transcribe_video_async(self, video_path, output_path, model="tiny", quality_preset="fast"):
         """Transcribe a video file using Whisper in a non-blocking way.
         
         Args:
             video_path (str): Path to the video file.
             output_path (str): Path to save the SRT file.
+            model (str): Whisper model to use ('tiny', 'base', 'small', 'medium').
+            quality_preset (str): Preset de qualidade ('fast', 'balanced', 'high').
             
         Returns:
             dict: Status information about the transcription process.
@@ -261,10 +294,11 @@ class SubtitleProcessor:
             # Extract audio from video to temporary file
             temp_audio_file = os.path.join(os.path.dirname(output_path), f"temp_audio_{int(time.time())}.wav")
             
-            # Use ffmpeg command to extract audio
+            # Use ffmpeg command to extract audio with qualidade melhorada
             ffmpeg_cmd = [
                 "ffmpeg", "-i", video_path, 
-                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                "-vn", "-acodec", "pcm_s16le", "-ar", "24000", "-ac", "1",
+                "-af", "highpass=f=200,lowpass=f=3000,volume=1.5",  # Filtro de áudio para melhorar a voz
                 "-y", temp_audio_file
             ]
             
