@@ -12,22 +12,24 @@ class VideoProcessor:
         """Initialize the VideoProcessor class."""
         self.subtitle_processor = SubtitleProcessor()
         
-    def download_youtube_video(self, youtube_url, output_dir):
-        """Download a video from YouTube using yt-dlp.
+    def download_youtube_video(self, youtube_url, output_dir, download_subtitles=False):
+        """Download a video from YouTube using yt-dlp, with option for subtitles.
         
         Args:
             youtube_url (str): URL of the YouTube video.
             output_dir (str): Directory to save the downloaded video.
+            download_subtitles (bool): Whether to download subtitles.
             
         Returns:
-            str: Path to the downloaded video file.
+            dict: Dictionary with paths to the downloaded files or str path if no subtitles.
         """
         try:
             # Create a progress message
             st.write("Conectando ao YouTube...")
             
             # Generate an output filename with timestamp to avoid conflicts
-            output_filename = f"youtube_video_{int(time.time())}.mp4"
+            timestamp = int(time.time())
+            output_filename = f"youtube_video_{timestamp}.mp4"
             output_path = os.path.join(output_dir, output_filename)
             
             # Ensure output directory exists
@@ -42,20 +44,45 @@ class VideoProcessor:
                 'progress': False,          # No progress to avoid clutter in logs
             }
             
+            # Setup subtitle options if requested
+            subtitle_path = None
+            if download_subtitles:
+                # Add subtitle options
+                ydl_opts.update({
+                    'writesubtitles': True,
+                    'writeautomaticsub': True,
+                    'subtitleslangs': ['pt', 'en'],  # Prefer Portuguese, then English
+                    'subtitlesformat': 'srt',
+                })
+            
             # Create progress status
             status = st.empty()
             status.write("Obtendo informações do vídeo...")
             
             # First get video info to show title
+            info = None
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(youtube_url, download=False)
-                video_title = info.get('title', 'Vídeo do YouTube')
+                try:
+                    info = ydl.extract_info(youtube_url, download=False)
+                    video_title = info.get('title', 'Vídeo do YouTube') if info else 'Vídeo do YouTube'
+                except Exception:
+                    video_title = 'Vídeo do YouTube'
             
+            # Check if video has subtitles
+            has_subtitles = False
+            if info and isinstance(info, dict):
+                if 'subtitles' in info and info['subtitles']:
+                    has_subtitles = True
+                elif 'automatic_captions' in info and info['automatic_captions']:
+                    has_subtitles = True
+                
             # Display title
-            status.write(f"Vídeo encontrado: {video_title}")
-            
-            # Create a progress indicator
-            status.write(f"Baixando o vídeo... (pode levar alguns minutos)")
+            if download_subtitles and has_subtitles:
+                status.write(f"Vídeo encontrado: {video_title} (com legendas)")
+                status.write(f"Baixando o vídeo e legendas... (pode levar alguns minutos)")
+            else:
+                status.write(f"Vídeo encontrado: {video_title}")
+                status.write(f"Baixando o vídeo... (pode levar alguns minutos)")
             
             # Download the video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -65,14 +92,128 @@ class VideoProcessor:
             if not os.path.exists(output_path):
                 raise Exception("Falha ao baixar o vídeo - arquivo não foi criado")
             
-            # Show success message
-            status.write(f"✅ Download do vídeo concluído!")
+            # If subtitles were requested, look for the downloaded subtitle file
+            if download_subtitles and has_subtitles:
+                subtitle_filename = f"{os.path.splitext(output_filename)[0]}.pt.srt"
+                subtitle_path = os.path.join(output_dir, subtitle_filename)
+                
+                # Check if Portuguese subtitle exists
+                if not os.path.exists(subtitle_path):
+                    # Try English subtitle
+                    subtitle_filename = f"{os.path.splitext(output_filename)[0]}.en.srt"
+                    subtitle_path = os.path.join(output_dir, subtitle_filename)
+                
+                # Check if any subtitle was found
+                if os.path.exists(subtitle_path):
+                    status.write(f"✅ Download do vídeo e legendas concluído!")
+                    return {
+                        'video_path': output_path,
+                        'subtitle_path': subtitle_path
+                    }
+                else:
+                    status.write(f"✅ Download do vídeo concluído! (Legendas não encontradas)")
+            else:
+                status.write(f"✅ Download do vídeo concluído!")
             
-            return output_path
+            # If we reached here, either subtitles weren't requested or weren't found
+            if download_subtitles:
+                return {
+                    'video_path': output_path,
+                    'subtitle_path': None
+                }
+            else:
+                return output_path
             
         except Exception as e:
             st.error(f"Erro ao baixar vídeo do YouTube: {str(e)}")
             raise Exception(f"Erro ao baixar vídeo do YouTube: {str(e)}")
+            
+    def download_youtube_subtitles(self, youtube_url, output_dir):
+        """Download only subtitles from YouTube using yt-dlp.
+        
+        Args:
+            youtube_url (str): URL of the YouTube video.
+            output_dir (str): Directory to save the subtitles.
+            
+        Returns:
+            str: Path to the downloaded subtitle file, or None if not available.
+        """
+        try:
+            # Create a progress message
+            status = st.empty()
+            status.write("Verificando legendas disponíveis...")
+            
+            # Generate an output filename with timestamp to avoid conflicts
+            timestamp = int(time.time())
+            output_filename = f"youtube_subtitles_{timestamp}"
+            
+            # Ensure output directory exists
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Configure yt-dlp options for subtitles only
+            ydl_opts = {
+                'skip_download': True,       # Skip video download
+                'writesubtitles': True,      # Download subtitles
+                'writeautomaticsub': True,   # Get auto-generated if needed
+                'subtitleslangs': ['pt', 'en'],  # Prefer Portuguese, then English
+                'subtitlesformat': 'srt',    # SRT format
+                'outtmpl': os.path.join(output_dir, output_filename),  # Output template
+                'quiet': True,               # Less verbose output
+                'no_warnings': True          # No warnings
+            }
+            
+            # First check if video has subtitles
+            info = None
+            video_title = 'Vídeo do YouTube'
+            
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(youtube_url, download=False)
+                    if info and isinstance(info, dict):
+                        video_title = info.get('title', 'Vídeo do YouTube')
+            except Exception:
+                status.write("Erro ao obter informações do vídeo, mas tentando baixar as legendas mesmo assim.")
+                
+            # Check if video has available subtitles
+            has_subtitles = False
+            if info and isinstance(info, dict):
+                if 'subtitles' in info and info['subtitles']:
+                    has_subtitles = True
+                    status.write(f"Legendas oficiais encontradas para: {video_title}")
+                elif 'automatic_captions' in info and info['automatic_captions']:
+                    has_subtitles = True
+                    status.write(f"Legendas automáticas encontradas para: {video_title}")
+                else:
+                    status.write(f"❌ O vídeo '{video_title}' não possui legendas disponíveis.")
+                    return None
+            else:
+                # Sem informações suficientes, vamos tentar baixar mesmo assim
+                status.write("Tentando baixar legendas mesmo sem informações detalhadas...")
+                
+            # Download the subtitles
+            status.write("Baixando legendas...")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([youtube_url])
+            
+            # Look for the downloaded subtitle file - yt-dlp will add language code extension
+            pt_subtitle_path = os.path.join(output_dir, f"{output_filename}.pt.srt")
+            en_subtitle_path = os.path.join(output_dir, f"{output_filename}.en.srt")
+            
+            # Check if Portuguese subtitles exist
+            if os.path.exists(pt_subtitle_path):
+                status.write(f"✅ Legendas em português baixadas com sucesso!")
+                return pt_subtitle_path
+            # If not, check for English
+            elif os.path.exists(en_subtitle_path):
+                status.write(f"✅ Legendas em inglês baixadas com sucesso!")
+                return en_subtitle_path
+            else:
+                status.write("❌ Não foi possível baixar as legendas.")
+                return None
+                
+        except Exception as e:
+            st.error(f"Erro ao baixar legendas do YouTube: {str(e)}")
+            return None
     
     def get_video_duration(self, video_path):
         """Get the duration of a video file in seconds.

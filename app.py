@@ -137,20 +137,103 @@ with tabs[0]:
                                    placeholder="https://www.youtube.com/watch?v=...")
         
         if youtube_url:
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                if st.button("📥 Baixar e Processar", 
-                            help="Baixa o vídeo do YouTube e prepara para transcrição",
-                            use_container_width=True):
-                    try:
-                        with st.spinner("🔄 Baixando vídeo do YouTube..."):
-                            # Download the YouTube video
-                            video_processor = VideoProcessor()
-                            st.session_state.video_path = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir)
-                            
-                        st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
-                    except Exception as e:
-                        st.error(f"❌ Erro ao baixar vídeo: {str(e)}")
+            # Adicionar opções para download de legendas
+            option_cols = st.columns([3, 2])
+            
+            with option_cols[0]:
+                # Opção para baixar com legendas
+                download_with_subs = st.checkbox("Baixar legendas disponíveis no YouTube", 
+                                               value=True,
+                                               help="Se disponíveis, baixa as legendas oficiais ou automáticas do YouTube junto com o vídeo")
+            
+            with option_cols[1]:
+                # Opção só para legendas
+                subs_only = st.checkbox("Apenas legendas (sem vídeo)", 
+                                      value=False,
+                                      help="Baixa somente as legendas, sem o vídeo")
+            
+            # Ações disponíveis baseadas nas opções
+            action_cols = st.columns([2, 2, 1])
+            
+            with action_cols[0]:
+                if not subs_only:
+                    # Botão para baixar vídeo (com ou sem legendas)
+                    if st.button("📥 Baixar e Processar Vídeo", 
+                               help="Baixa o vídeo do YouTube e prepara para transcrição" + (" (com legendas originais)" if download_with_subs else ""),
+                               use_container_width=True):
+                        try:
+                            with st.spinner("🔄 Baixando do YouTube..."):
+                                video_processor = VideoProcessor()
+                                result = video_processor.download_youtube_video(youtube_url, st.session_state.temp_dir, download_with_subs)
+                                
+                                # Handle subtitle result
+                                if download_with_subs and isinstance(result, dict):
+                                    st.session_state.video_path = result['video_path']
+                                    
+                                    # Check if subtitles were found
+                                    if result.get('subtitle_path'):
+                                        st.session_state.subtitle_path = result['subtitle_path']
+                                        st.session_state.processing_complete = True
+                                        st.session_state.transcription_complete = True
+                                        
+                                        st.success("✅ Vídeo e legendas originais baixados com sucesso!")
+                                        st.info("ℹ️ As legendas do YouTube foram carregadas. Você pode pular a etapa de transcrição e ir direto para a divisão ou download.")
+                                    else:
+                                        st.success("✅ Vídeo baixado com sucesso, mas sem legendas disponíveis.")
+                                        st.info("Prossiga com a transcrição Whisper para gerar as legendas.")
+                                else:
+                                    st.session_state.video_path = result
+                                    st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
+                        except Exception as e:
+                            st.error(f"❌ Erro ao baixar vídeo: {str(e)}")
+            
+            with action_cols[1]:
+                if subs_only:
+                    # Botão apenas para legendas
+                    if st.button("📄 Baixar Apenas Legendas", 
+                               help="Tenta baixar apenas as legendas do vídeo do YouTube (se disponíveis)",
+                               use_container_width=True):
+                        try:
+                            with st.spinner("🔄 Verificando e baixando legendas..."):
+                                video_processor = VideoProcessor()
+                                subtitle_path = video_processor.download_youtube_subtitles(youtube_url, st.session_state.temp_dir)
+                                
+                                if subtitle_path:
+                                    st.session_state.subtitle_path = subtitle_path
+                                    st.session_state.processing_complete = True
+                                    st.session_state.transcription_complete = True
+                                    
+                                    # Exibir botão de download para as legendas
+                                    with open(subtitle_path, 'r', encoding='utf-8', errors='replace') as f:
+                                        subtitle_data = f.read()
+                                        st.download_button(
+                                            label="⬇️ Baixar Legendas SRT",
+                                            data=subtitle_data,
+                                            file_name="legendas_youtube.srt",
+                                            mime="text/plain"
+                                        )
+                                    
+                                    # Mostrar prévia
+                                    if len(subtitle_data) > 500:
+                                        subtitle_preview = subtitle_data[:500] + "..."
+                                    else:
+                                        subtitle_preview = subtitle_data
+                                        
+                                    # Tratar a substituição de quebras de linha antes do f-string    
+                                    subtitle_preview_html = subtitle_preview.replace('\n', '<br>')
+                                        
+                                    st.markdown(f"""
+                                    <div style="max-height:200px; overflow-y:auto; padding:15px; background-color:#f7f9fc; 
+                                        border-radius:8px; margin:15px 0; border:1px solid #e0e8f5; font-size:14px; line-height:1.6;">
+                                        {subtitle_preview_html}
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                else:
+                                    st.error("❌ Este vídeo não possui legendas disponíveis no YouTube.")
+                                    st.info("Tente baixar o vídeo completo e usar o Whisper para transcrição automática.")
+                        except Exception as e:
+                            st.error(f"❌ Erro ao baixar legendas: {str(e)}")
     
     # Display video and transcription options if a video is loaded
     if st.session_state.video_path is not None:
