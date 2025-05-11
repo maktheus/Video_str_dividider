@@ -407,45 +407,45 @@ with tabs[0]:
         # Elegante botão de transcrição com colunas para melhor layout
         st.markdown("<div style='margin:25px 0;'>", unsafe_allow_html=True)
         
-        # Opções de modelo e qualidade
-        model_quality_cols = st.columns([1, 1])
-        with model_quality_cols[0]:
-            model_display = {
-                "tiny": "Tiny - Mais rápido (menor precisão)",
-                "base": "Base - Equilíbrio velocidade/precisão",
-                "small": "Small - Maior precisão (mais lento)"
-            }
-            
-            # Usar modelo salvo da etapa anterior (se existir)
-            default_model = st.session_state.get("whisper_model", "tiny")
-            
-            whisper_model = st.selectbox(
-                "Modelo de transcrição",
-                options=["tiny", "base", "small"],
-                format_func=lambda x: model_display.get(x, x),
-                index=["tiny", "base", "small"].index(default_model) if default_model in ["tiny", "base", "small"] else 0,
-                key="main_whisper_model",
-                help="Escolha o modelo do Whisper. Modelos maiores são mais precisos, mas mais lentos."
-            )
-            
-        with model_quality_cols[1]:
-            quality_display = {
-                "fast": "Rápida - Otimizada para velocidade",
-                "balanced": "Balanceada - Bom equilíbrio",
-                "high": "Alta - Máxima precisão (mais lenta)"
-            }
-            
-            # Usar qualidade salva da etapa anterior (se existir)
-            default_quality = st.session_state.get("quality_preset", "fast")
-            
-            quality_preset = st.selectbox(
-                "Qualidade da transcrição",
-                options=["fast", "balanced", "high"],
-                format_func=lambda x: quality_display.get(x, x),
-                index=["fast", "balanced", "high"].index(default_quality) if default_quality in ["fast", "balanced", "high"] else 0,
-                key="main_quality_preset",
-                help="Configure o nível de qualidade da transcrição."
-            )
+        # Informações de qualidade e modelo definidas (usar valores das configurações do YouTube quando disponíveis)
+        # Recuperar modelo e qualidade da session_state (que foram salvos anteriormente)
+        whisper_model = st.session_state.get("whisper_model", "tiny")
+        quality_preset = st.session_state.get("quality_preset", "fast")
+        
+        # Dicionários de exibição para mostrar nomes amigáveis em vez de valores técnicos
+        model_display = {
+            "tiny": "Tiny - Mais rápido (menor precisão)",
+            "base": "Base - Equilíbrio velocidade/precisão",
+            "small": "Small - Maior precisão (mais lento)"
+        }
+        
+        quality_display = {
+            "fast": "Rápida - Otimizada para velocidade",
+            "balanced": "Balanceada - Bom equilíbrio",
+            "high": "Alta - Máxima precisão (mais lenta)"
+        }
+        
+        # Mostrar informações do modelo e qualidade selecionados
+        model_quality_info = st.container()
+        with model_quality_info:
+            st.markdown(f"""
+            <div style="background-color:#f0f9ff; padding:15px; border-radius:8px; margin:10px 0; border-left:4px solid #3b82f6;">
+                <p style="margin:0 0 8px 0; font-weight:600; color:#1e3a8a;">Configurações de Transcrição:</p>
+                <div style="display:flex; flex-wrap:wrap; gap:15px;">
+                    <div style="min-width:180px;">
+                        <span style="font-size:13px; color:#4b5563; display:block;">Modelo:</span>
+                        <span style="font-weight:500; color:#1e40af;">{model_display.get(whisper_model, whisper_model)}</span>
+                    </div>
+                    <div style="min-width:180px;">
+                        <span style="font-size:13px; color:#4b5563; display:block;">Qualidade:</span>
+                        <span style="font-weight:500; color:#1e40af;">{quality_display.get(quality_preset, quality_preset)}</span>
+                    </div>
+                </div>
+                <p style="margin:10px 0 0 0; font-size:13px; color:#4b5563;">
+                    Para alterar estas configurações, você pode ajustá-las na etapa de download do YouTube.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
         # Estimativa de tempo atualizada com base no modelo e qualidade
         time_multipliers = {
