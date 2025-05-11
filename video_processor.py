@@ -66,13 +66,34 @@ class VideoProcessor:
             # Setup subtitle options if requested
             subtitle_path = None
             if download_subtitles:
-                # Add subtitle options
-                ydl_opts.update({
+                # Add subtitle options, com tratamento para falhas
+                try_subtitle_opts = {
                     'writesubtitles': True,
                     'writeautomaticsub': True,
                     'subtitleslangs': ['pt', 'en'],  # Prefer Portuguese, then English
                     'subtitlesformat': 'srt',
-                })
+                    'skip_download': True  # Só para verificar legendas disponíveis
+                }
+                
+                # Primeiro verificamos se há legendas disponíveis
+                has_subtitles_available = False
+                try:
+                    with yt_dlp.YoutubeDL(try_subtitle_opts) as ydl:
+                        ydl.extract_info(youtube_url, download=False)
+                        has_subtitles_available = True
+                except Exception:
+                    # Se falhar ao verificar legendas, continuamos sem elas
+                    st.warning("⚠️ Não foi possível verificar legendas para este vídeo, continuando apenas com o download do vídeo.")
+                    has_subtitles_available = False
+                
+                # Só adiciona opções de legendas se elas estiverem disponíveis    
+                if has_subtitles_available:
+                    ydl_opts.update({
+                        'writesubtitles': True,
+                        'writeautomaticsub': True,
+                        'subtitleslangs': ['pt', 'en'],  # Prefer Portuguese, then English
+                        'subtitlesformat': 'srt',
+                    })
             
             # Create progress status
             status = st.empty()
@@ -103,9 +124,27 @@ class VideoProcessor:
                 status.write(f"Vídeo encontrado: {video_title}")
                 status.write(f"Baixando o vídeo... (pode levar alguns minutos)")
             
-            # Download the video
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([youtube_url])
+            # Download the video com tratamento robusto de erros
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([youtube_url])
+            except Exception as e:
+                # Tentar novamente sem opções de legendas se falhar
+                st.warning(f"⚠️ Erro ao baixar o vídeo com legendas: {str(e)}. Tentando novamente sem legendas...")
+                
+                # Remover opções de legendas que podem estar causando o erro
+                if 'writesubtitles' in ydl_opts:
+                    del ydl_opts['writesubtitles']
+                if 'writeautomaticsub' in ydl_opts:
+                    del ydl_opts['writeautomaticsub']
+                if 'subtitleslangs' in ydl_opts:
+                    del ydl_opts['subtitleslangs']
+                if 'subtitlesformat' in ydl_opts:
+                    del ydl_opts['subtitlesformat']
+                
+                # Tenta novamente apenas o vídeo
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([youtube_url])
             
             # Check if file exists
             if not os.path.exists(output_path):
