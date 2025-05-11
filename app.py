@@ -37,6 +37,26 @@ if 'processing_complete' not in st.session_state:
     st.session_state.processing_complete = False
 if 'temp_dir' not in st.session_state:
     st.session_state.temp_dir = tempfile.mkdtemp()
+    
+# Configurações padrão de transcrição
+if 'whisper_model' not in st.session_state:
+    st.session_state.whisper_model = "tiny"
+if 'quality_preset' not in st.session_state:
+    st.session_state.quality_preset = "fast"
+
+# Funções para atualizar as configurações de transcrição
+def update_transcription_settings(model, quality):
+    st.session_state.whisper_model = model
+    st.session_state.quality_preset = quality
+    
+# Funções de callback para os seletores
+def on_model_change():
+    selected_model = st.session_state.youtube_whisper_model
+    st.session_state.whisper_model = selected_model
+    
+def on_quality_change():
+    selected_quality = st.session_state.youtube_quality_preset
+    st.session_state.quality_preset = selected_quality
 
 # Create a modern header with title and description
 st.markdown("""
@@ -198,12 +218,13 @@ with tabs[0]:
                     # Recuperar configurações anteriores (se existirem)
                     default_model = st.session_state.get("whisper_model", "tiny")
                     
-                    whisper_model = st.selectbox(
+                    st.selectbox(
                         "Modelo de transcrição",
                         options=["tiny", "base", "small"],
                         format_func=lambda x: model_display.get(x, x),
                         index=["tiny", "base", "small"].index(default_model) if default_model in ["tiny", "base", "small"] else 0,
                         key="youtube_whisper_model",
+                        on_change=on_model_change,
                         help="Escolha o modelo do Whisper para a transcrição. Modelos maiores são mais precisos, mas mais lentos."
                     )
                     
@@ -217,18 +238,15 @@ with tabs[0]:
                     # Recuperar qualidade anterior (se existir)
                     default_quality = st.session_state.get("quality_preset", "fast")
                     
-                    quality_preset = st.selectbox(
+                    st.selectbox(
                         "Qualidade da transcrição",
                         options=["fast", "balanced", "high"],
                         format_func=lambda x: quality_display.get(x, x),
                         index=["fast", "balanced", "high"].index(default_quality) if default_quality in ["fast", "balanced", "high"] else 0,
                         key="youtube_quality_preset",
+                        on_change=on_quality_change,
                         help="Configure o nível de qualidade da transcrição."
                     )
-                    
-                    # Atualizar session_state imediatamente ao alterar os valores
-                    st.session_state.whisper_model = whisper_model
-                    st.session_state.quality_preset = quality_preset
             
             # Botão destacado para iniciar o processamento
             st.markdown("<div style='margin-top:20px;'>", unsafe_allow_html=True)
@@ -276,6 +294,12 @@ with tabs[0]:
                                 else:
                                     st.session_state.video_path = result
                                     st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
+                                    
+                                # Garantir que as configurações de transcrição sejam salvas
+                                # usando valores das variáveis de estado dos seletores
+                                selected_model = st.session_state.youtube_whisper_model
+                                selected_quality = st.session_state.youtube_quality_preset
+                                update_transcription_settings(selected_model, selected_quality)
                                     
 
                                     
