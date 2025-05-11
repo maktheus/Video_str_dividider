@@ -195,11 +195,14 @@ with tabs[0]:
                         "small": "Small - Maior precisão (mais lento)"
                     }
                     
+                    # Recuperar configurações anteriores (se existirem)
+                    default_model = st.session_state.get("whisper_model", "tiny")
+                    
                     whisper_model = st.selectbox(
                         "Modelo de transcrição",
                         options=["tiny", "base", "small"],
                         format_func=lambda x: model_display.get(x, x),
-                        index=0,
+                        index=["tiny", "base", "small"].index(default_model) if default_model in ["tiny", "base", "small"] else 0,
                         key="youtube_whisper_model",
                         help="Escolha o modelo do Whisper para a transcrição. Modelos maiores são mais precisos, mas mais lentos."
                     )
@@ -211,14 +214,21 @@ with tabs[0]:
                         "high": "Alta - Máxima precisão (mais lenta)"
                     }
                     
+                    # Recuperar qualidade anterior (se existir)
+                    default_quality = st.session_state.get("quality_preset", "fast")
+                    
                     quality_preset = st.selectbox(
                         "Qualidade da transcrição",
                         options=["fast", "balanced", "high"],
                         format_func=lambda x: quality_display.get(x, x),
-                        index=0,
+                        index=["fast", "balanced", "high"].index(default_quality) if default_quality in ["fast", "balanced", "high"] else 0,
                         key="youtube_quality_preset",
                         help="Configure o nível de qualidade da transcrição."
                     )
+                    
+                    # Atualizar session_state imediatamente ao alterar os valores
+                    st.session_state.whisper_model = whisper_model
+                    st.session_state.quality_preset = quality_preset
             
             # Botão destacado para iniciar o processamento
             st.markdown("<div style='margin-top:20px;'>", unsafe_allow_html=True)
@@ -266,6 +276,8 @@ with tabs[0]:
                                 else:
                                     st.session_state.video_path = result
                                     st.success("✅ Vídeo baixado com sucesso! Pronto para transcrever.")
+                                    
+
                                     
 
                                 
