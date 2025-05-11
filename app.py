@@ -648,12 +648,13 @@ with tabs[1]:
                     status_text.write("Processando segmentos de vídeo...")
                     progress_bar.progress(30)
                     
-                    # Split the video
+                    # Split the video with the selected quality
                     st.session_state.segments = video_processor.split_video_equal_parts(
                         st.session_state.video_path,
                         st.session_state.subtitle_path,
                         num_parts,
-                        st.session_state.temp_dir
+                        st.session_state.temp_dir,
+                        quality=video_quality
                     )
                     
                     # Complete progress
@@ -741,12 +742,13 @@ with tabs[1]:
                                 status_text.write("Processando segmentos de vídeo nos pontos especificados...")
                                 progress_bar.progress(30)
                                 
-                                # Split the video
+                                # Split the video with the selected quality
                                 st.session_state.segments = video_processor.split_video_custom_timestamps(
                                     st.session_state.video_path,
                                     st.session_state.subtitle_path,
                                     timestamps,
-                                    st.session_state.temp_dir
+                                    st.session_state.temp_dir,
+                                    quality=video_quality
                                 )
                                 
                                 # Complete progress
@@ -1095,6 +1097,35 @@ with tabs[2]:
                 </div>
             """, unsafe_allow_html=True)
             
+            # Opções de qualidade de vídeo para legendas incorporadas
+            st.write("#### Configurações de Saída")
+            subtitle_quality = st.select_slider(
+                "Qualidade do vídeo com legendas:",
+                options=["low", "medium", "high"],
+                value="medium",
+                format_func=lambda x: {
+                    "low": "Baixa (mais rápido)",
+                    "medium": "Média (equilibrado)",
+                    "high": "Alta (qualidade máxima)"
+                }.get(x, x)
+            )
+            
+            st.markdown(f"""
+            <div style="margin:10px 0; padding:8px; border-radius:5px; background-color:{
+                {"low": "#fff3e0", "medium": "#e8f5e9", "high": "#e3f2fd"}.get(subtitle_quality, "#f5f5f5")
+            };">
+                <p style="margin:0; font-size:13px;">
+                    {
+                        {
+                            "low": "⚡ Processamento mais rápido, arquivo menor, qualidade reduzida",
+                            "medium": "⚖️ Bom equilíbrio entre velocidade e qualidade",
+                            "high": "🔍 Máxima qualidade, processamento mais lento, arquivo maior"
+                        }.get(subtitle_quality)
+                    }
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
             # Add a button to create a video with embedded subtitles
             if st.button("🔄 Gerar Vídeo com Legendas Embutidas", use_container_width=True):
                 # Create a styled container for the processing
@@ -1122,12 +1153,13 @@ with tabs[2]:
                         progress_text.write("⚙️ Incorporando legendas no vídeo...")
                         progress_bar.progress(30)
                         
-                        # Embed subtitles into the video
+                        # Embed subtitles into the video with the selected quality
                         video_processor = VideoProcessor()
                         output_path = video_processor.embed_subtitles(
                             st.session_state.video_path,
                             st.session_state.subtitle_path,
-                            output_video_path
+                            output_video_path,
+                            quality=subtitle_quality
                         )
                         
                         st.session_state.embedded_video_path = output_path
