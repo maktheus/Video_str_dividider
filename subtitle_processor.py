@@ -266,7 +266,7 @@ class SubtitleProcessor:
         # Start transcription in a background thread
         thread = threading.Thread(
             target=self._run_transcription_process, 
-            args=(video_path, output_path)
+            args=(video_path, output_path, model, quality_preset)
         )
         thread.daemon = True  # Thread will exit when main program exits
         thread.start()
@@ -280,8 +280,8 @@ class SubtitleProcessor:
             with open(self.status_file, 'w') as f:
                 json.dump(status, f)
     
-    def _run_transcription_process(self, video_path, output_path):
-        """Run the transcription process in a background thread."""
+    def _run_transcription_process(self, video_path, output_path, model="tiny", quality_preset="fast"):
+        """Run the transcription process in a background thread with specified model and quality."""
         status = self.default_status.copy()
         
         try:
@@ -320,20 +320,42 @@ class SubtitleProcessor:
             whisper_output_dir = os.path.join(os.path.dirname(output_path), "whisper_output")
             os.makedirs(whisper_output_dir, exist_ok=True)
             
-            # Use Whisper CLI to transcribe with tiny model and speed optimizations
-            whisper_cmd = [
-                "whisper", temp_audio_file, 
-                "--model", "tiny", 
-                "--output_format", "srt", 
-                "--output_dir", whisper_output_dir,
-                "--beam_size", "1",           # Smaller beam size = faster
-                "--best_of", "1",             # Fewer samples = faster
-                "--condition_on_previous_text", "False", # Less context processing = faster
-                "--temperature", "0"          # Deterministic = faster
-            ]
+            # Configure Whisper parameters based on model and quality preset
+            whisper_cmd = ["whisper", temp_audio_file, "--output_format", "srt", "--output_dir", whisper_output_dir]
             
-            # Update message to reflect faster processing
-            status['message'] = "⏳ Etapa 2/3: Transcrevendo o áudio no modo rápido (otimizado para velocidade)..."
+            # Add model parameter
+            whisper_cmd.extend(["--model", model])
+            
+            # Configure quality settings based on preset
+            if quality_preset == "fast":
+                # Fastest: Minimalistic settings for speed
+                whisper_cmd.extend([
+                    "--beam_size", "1",             # Smaller beam size = faster
+                    "--best_of", "1",               # Fewer samples = faster
+                    "--condition_on_previous_text", "False",  # Less context = faster
+                    "--temperature", "0"            # No randomness = faster
+                ])
+                mode_info = f"modo rápido (modelo {model})"
+            elif quality_preset == "balanced":
+                # Balanced: Good quality with reasonable speed
+                whisper_cmd.extend([
+                    "--beam_size", "3",             # Medium beam size
+                    "--best_of", "2",               # Consider a few alternatives
+                    "--temperature", "0"            # Still deterministic
+                ])
+                mode_info = f"modo balanceado (modelo {model})"
+            else:  # "high"
+                # High quality: Best settings for accuracy
+                whisper_cmd.extend([
+                    "--beam_size", "5",             # Larger beam size = better quality
+                    "--best_of", "5",               # Consider more alternatives
+                    "--condition_on_previous_text", "True",  # Better context handling
+                    "--temperature", "0.2"          # Slight variability for better results
+                ])
+                mode_info = f"modo alta qualidade (modelo {model})"
+            
+            # Update message to reflect processing mode
+            status['message'] = f"⏳ Etapa 2/3: Transcrevendo o áudio em {mode_info}..."
             self._save_status(status)
             
             # Run whisper

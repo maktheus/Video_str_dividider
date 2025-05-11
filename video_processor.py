@@ -317,21 +317,59 @@ class VideoProcessor:
         
         return segments
     
-    def _extract_video_segment(self, input_path, output_path, start_time, duration):
-        """Extract a segment from a video file.
+    def _extract_video_segment(self, input_path, output_path, start_time, duration, quality="medium"):
+        """Extract a segment from a video file with improved quality.
         
         Args:
             input_path (str): Path to the input video file.
             output_path (str): Path to save the output video segment.
             start_time (float): Start time of the segment in seconds.
             duration (float): Duration of the segment in seconds.
+            quality (str): Quality preset ('low', 'medium', 'high').
         """
         try:
-            # Use ffmpeg command to extract segment
+            # Configure quality settings
+            if quality == "low":
+                # Fast compression, lower quality
+                video_codec = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "28"]
+                audio_codec = ["-c:a", "aac", "-b:a", "128k"]
+            elif quality == "high":
+                # Slow compression, high quality
+                video_codec = ["-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high"]
+                audio_codec = ["-c:a", "aac", "-b:a", "192k"]
+            else:  # medium (default)
+                # Balanced settings
+                video_codec = ["-c:v", "libx264", "-preset", "medium", "-crf", "23"]
+                audio_codec = ["-c:a", "aac", "-b:a", "160k"]
+                
+            # Check if we can directly copy the stream (much faster)
+            # This works when segment boundaries align with keyframes
+            try_copy_first = True
+            
+            if try_copy_first:
+                # First try with stream copy (fast)
+                copy_cmd = [
+                    "ffmpeg", "-i", input_path, "-ss", str(start_time), 
+                    "-t", str(duration), "-c", "copy", "-y", output_path
+                ]
+                
+                copy_result = subprocess.run(copy_cmd, capture_output=True, text=True)
+                
+                # If successful, return early
+                if copy_result.returncode == 0:
+                    return
+            
+            # If copy failed or we want to ensure accurate cutting,
+            # use re-encoding which is more accurate but slower
             ffmpeg_cmd = [
                 "ffmpeg", "-i", input_path, "-ss", str(start_time), 
-                "-t", str(duration), "-c", "copy", "-y", output_path
+                "-t", str(duration), 
             ]
+            # Add codec settings
+            ffmpeg_cmd.extend(video_codec)
+            ffmpeg_cmd.extend(audio_codec)
+            # Add output
+            ffmpeg_cmd.extend(["-movflags", "+faststart", "-y", output_path])
             
             result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
             
@@ -341,27 +379,68 @@ class VideoProcessor:
         except Exception as e:
             raise Exception(f"Erro ao extrair segmento de vídeo: {str(e)}")
     
-    def embed_subtitles(self, video_path, subtitle_path, output_path):
-        """Embed subtitles into a video file.
+    def embed_subtitles(self, video_path, subtitle_path, output_path, quality="medium", subtitle_style=None):
+        """Embed subtitles into a video file with improved quality and styling.
         
         Args:
             video_path (str): Path to the video file.
             subtitle_path (str): Path to the subtitle file.
             output_path (str): Path to save the output video with embedded subtitles.
+            quality (str): Quality preset ('low', 'medium', 'high').
+            subtitle_style (dict, optional): Custom styling for subtitles.
             
         Returns:
             str: Path to the output video with embedded subtitles.
         """
         try:
-            # Use ffmpeg to embed subtitles
+            # Configure quality settings
+            if quality == "low":
+                # Fast compression, lower quality
+                video_codec = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "28"]
+                audio_codec = ["-c:a", "aac", "-b:a", "128k"]
+            elif quality == "high":
+                # Slow compression, high quality
+                video_codec = ["-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high"]
+                audio_codec = ["-c:a", "aac", "-b:a", "192k"]
+            else:  # medium (default)
+                # Balanced settings
+                video_codec = ["-c:v", "libx264", "-preset", "medium", "-crf", "23"]
+                audio_codec = ["-c:a", "aac", "-b:a", "160k"]
+                
+            # Escape subtitle path for use in filter
             subtitle_path_esc = subtitle_path.replace("'", "'\\''")  # Escape single quotes
             
+            # Configure subtitle style
+            if subtitle_style is None:
+                # Default style - good readability with shadow
+                subtitle_style = {
+                    'fontsize': 24,
+                    'fontcolor': 'white',
+                    'bordercolor': 'black',
+                    'borderw': 1.5,
+                    'shadowcolor': 'black',
+                    'shadowx': 2,
+                    'shadowy': 2
+                }
+            
+            # Build style string
+            style_parts = []
+            for key, value in subtitle_style.items():
+                style_parts.append(f"{key}={value}")
+            style_string = ":".join(style_parts)
+            
+            # Build ffmpeg command
             ffmpeg_cmd = [
-                "ffmpeg", "-i", video_path, 
-                "-vf", f"subtitles='{subtitle_path_esc}'", 
-                "-c:a", "copy", "-c:v", "libx264", "-preset", "medium",
-                "-y", output_path
+                "ffmpeg", "-i", video_path,
+                "-vf", f"subtitles='{subtitle_path_esc}':force_style='{style_string}'"
             ]
+            
+            # Add codec settings
+            ffmpeg_cmd.extend(video_codec)
+            ffmpeg_cmd.extend(audio_codec)
+            
+            # Add output
+            ffmpeg_cmd.extend(["-movflags", "+faststart", "-y", output_path])
             
             result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
             
