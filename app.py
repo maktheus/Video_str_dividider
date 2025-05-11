@@ -179,6 +179,7 @@ with tabs[0]:
                     options=list(video_quality_options.keys()),
                     format_func=lambda x: video_quality_options.get(x, x),
                     index=1,  # Medium por padrão
+                    key="download_quality_select",
                     help="Selecione a qualidade do vídeo a ser baixado do YouTube"
                 )
                 
@@ -199,6 +200,7 @@ with tabs[0]:
                         options=["tiny", "base", "small"],
                         format_func=lambda x: model_display.get(x, x),
                         index=0,
+                        key="youtube_whisper_model",
                         help="Escolha o modelo do Whisper para a transcrição. Modelos maiores são mais precisos, mas mais lentos."
                     )
                     
@@ -214,6 +216,7 @@ with tabs[0]:
                         options=["fast", "balanced", "high"],
                         format_func=lambda x: quality_display.get(x, x),
                         index=0,
+                        key="youtube_quality_preset",
                         help="Configure o nível de qualidade da transcrição."
                     )
             
@@ -421,6 +424,7 @@ with tabs[0]:
                 options=["tiny", "base", "small"],
                 format_func=lambda x: model_display.get(x, x),
                 index=["tiny", "base", "small"].index(default_model) if default_model in ["tiny", "base", "small"] else 0,
+                key="main_whisper_model",
                 help="Escolha o modelo do Whisper. Modelos maiores são mais precisos, mas mais lentos."
             )
             
@@ -439,6 +443,7 @@ with tabs[0]:
                 options=["fast", "balanced", "high"],
                 format_func=lambda x: quality_display.get(x, x),
                 index=["fast", "balanced", "high"].index(default_quality) if default_quality in ["fast", "balanced", "high"] else 0,
+                key="main_quality_preset",
                 help="Configure o nível de qualidade da transcrição."
             )
             
