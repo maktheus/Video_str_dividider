@@ -322,20 +322,69 @@ with tabs[0]:
         # Elegante botão de transcrição com colunas para melhor layout
         st.markdown("<div style='margin:25px 0;'>", unsafe_allow_html=True)
         
+        # Opções de modelo e qualidade
+        model_quality_cols = st.columns([1, 1])
+        with model_quality_cols[0]:
+            model_display = {
+                "tiny": "Tiny - Mais rápido (menor precisão)",
+                "base": "Base - Equilíbrio velocidade/precisão",
+                "small": "Small - Maior precisão (mais lento)"
+            }
+            whisper_model = st.selectbox(
+                "Modelo de transcrição",
+                options=["tiny", "base", "small"],
+                format_func=lambda x: model_display.get(x, x),
+                index=0,
+                help="Escolha o modelo do Whisper. Modelos maiores são mais precisos, mas mais lentos."
+            )
+            
+        with model_quality_cols[1]:
+            quality_display = {
+                "fast": "Rápida - Otimizada para velocidade",
+                "balanced": "Balanceada - Bom equilíbrio",
+                "high": "Alta - Máxima precisão (mais lenta)"
+            }
+            quality_preset = st.selectbox(
+                "Qualidade da transcrição",
+                options=["fast", "balanced", "high"],
+                format_func=lambda x: quality_display.get(x, x),
+                index=0,
+                help="Configure o nível de qualidade da transcrição."
+            )
+            
+        # Estimativa de tempo atualizada com base no modelo e qualidade
+        time_multipliers = {
+            "tiny": {"fast": 0.75, "balanced": 1.0, "high": 1.25},
+            "base": {"fast": 1.0, "balanced": 1.25, "high": 1.5},
+            "small": {"fast": 1.5, "balanced": 1.75, "high": 2.0}
+        }
+        
+        time_multiplier = time_multipliers[whisper_model][quality_preset]
+        est_transcription_time = max(1, int(duration_min * time_multiplier))
+        
+        # Atualizar a mensagem de tempo estimado com base na seleção
+        st.markdown(f"""
+        <div style="margin:10px 0 15px 0; padding:10px; background-color:#e6fffa; border-radius:6px; border-left:3px solid #38b2ac;">
+            <p style="margin:0; color:#2c7a7b; font-size:14px;">
+                <strong>Tempo estimado:</strong> Cerca de {est_transcription_time} minutos com o modelo selecionado
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+            
         # Check if we should start transcription
         transcribe_col1, transcribe_col2, transcribe_col3 = st.columns([1, 2, 1])
         with transcribe_col2:
             # Destaque para o botão com estilo personalizado antes do botão real
-            st.markdown("""
+            st.markdown(f"""
             <div style="text-align:center; margin-bottom:10px;">
                 <span style="background-color:#f9a825; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:500;">
-                    MODO RÁPIDO DE TRANSCRIÇÃO
+                    MODELO {whisper_model.upper()} - QUALIDADE {quality_preset.upper()}
                 </span>
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("🔊 Iniciar Transcrição Rápida", 
-                        help="Utiliza o modelo tiny do Whisper otimizado para transcrever o áudio em texto. Esta operação leva cerca de 75% da duração do vídeo.",
+            if st.button("🔊 Iniciar Transcrição", 
+                        help=f"Utiliza o modelo {whisper_model} do Whisper com configuração de qualidade {quality_preset}. Esta operação leva cerca de {time_multiplier}x a duração do vídeo.",
                         use_container_width=True,
                         type="primary") or st.session_state.transcription_started:
                 # Set flag to indicate transcription has started
@@ -360,10 +409,12 @@ with tabs[0]:
                         </h4>
                     """, unsafe_allow_html=True)
                     
-                    # Start or continue transcription
+                    # Start or continue transcription with selected model and quality
                     transcription_status = subtitle_processor.transcribe_video_async(
                         st.session_state.video_path, 
-                        output_srt_path
+                        output_srt_path,
+                        model=whisper_model,
+                        quality_preset=quality_preset
                     )
                     
                     # Check if transcription is finished

@@ -243,7 +243,7 @@ class VideoProcessor:
         except Exception as e:
             raise Exception(f"Erro ao obter duração do vídeo: {str(e)}")
     
-    def split_video_equal_parts(self, video_path, subtitle_path, num_parts, output_dir):
+    def split_video_equal_parts(self, video_path, subtitle_path, num_parts, output_dir, quality="medium"):
         """Split a video into equal parts and generate corresponding subtitles.
         
         Args:
@@ -251,6 +251,7 @@ class VideoProcessor:
             subtitle_path (str): Path to the subtitle file.
             num_parts (int): Number of parts to split the video into.
             output_dir (str): Directory to save the output files.
+            quality (str): Quality preset for video encoding ('low', 'medium', 'high').
             
         Returns:
             list: List of dictionaries containing paths to video and subtitle segments.
@@ -267,7 +268,7 @@ class VideoProcessor:
         # Split the video using custom timestamps
         return self.split_video_custom_timestamps(video_path, subtitle_path, timestamps, output_dir)
     
-    def split_video_custom_timestamps(self, video_path, subtitle_path, timestamps, output_dir):
+    def split_video_custom_timestamps(self, video_path, subtitle_path, timestamps, output_dir, quality="medium"):
         """Split a video at custom timestamps and generate corresponding subtitles.
         
         Args:
@@ -275,6 +276,10 @@ class VideoProcessor:
             subtitle_path (str): Path to the subtitle file.
             timestamps (list): List of timestamps (in seconds) to split the video at.
             output_dir (str): Directory to save the output files.
+            quality (str): Quality preset for video encoding ('low', 'medium', 'high').
+                - low: Mais rápido, menor qualidade
+                - medium: Equilíbrio velocidade/qualidade
+                - high: Melhor qualidade, mais lento
             
         Returns:
             list: List of dictionaries containing paths to video and subtitle segments.
@@ -301,8 +306,8 @@ class VideoProcessor:
             segment_video_path = os.path.join(segments_dir, f"segment_{i+1}.mp4")
             segment_subtitle_path = os.path.join(segments_dir, f"segment_{i+1}.srt")
             
-            # Extract video segment
-            self._extract_video_segment(video_path, segment_video_path, start, end - start)
+            # Extract video segment with specified quality
+            self._extract_video_segment(video_path, segment_video_path, start, end - start, quality=quality)
             
             # Extract subtitle segment
             self.subtitle_processor.extract_subtitle_segment(subtitle_path, segment_subtitle_path, start, end)
