@@ -272,11 +272,14 @@ with tabs[0]:
                         progress_value = transcription_status.get('progress', 0)
                         st.progress(progress_value)
                         
-                        # Show estimated time
+                        # Show estimated time with more realistic estimate
                         duration = video_processor.get_video_duration(st.session_state.video_path)
-                        est_time = max(1, int(duration * 0.3))  # Rough estimate: 1/3 of video length
+                        video_minutes = int(duration // 60)
                         
-                        st.info(f"⏱️ Transcrição em andamento. Tempo estimado: cerca de {est_time} minutos para um vídeo de {int(duration // 60)} minutos.")
+                        # Estimating 1.5x to 2x the video duration for processing
+                        est_time = max(1, int(video_minutes * 2))
+                        
+                        st.info(f"⏱️ Transcrição em andamento. Tempo estimado: cerca de {est_time} minutos para um vídeo de {video_minutes} minutos.")
                         
                         # Discretely show a small ad while they wait
                         st.markdown("<div style='margin:20px 0;'>", unsafe_allow_html=True)

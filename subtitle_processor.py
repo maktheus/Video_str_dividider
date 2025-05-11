@@ -89,15 +89,15 @@ class SubtitleProcessor:
             whisper_output_dir = os.path.join(os.path.dirname(output_path), "whisper_output")
             os.makedirs(whisper_output_dir, exist_ok=True)
             
-            # Use Whisper CLI to transcribe
+            # Use Whisper CLI to transcribe - using the base model for better accuracy while still being reasonably fast
             whisper_cmd = [
                 "whisper", temp_audio_file, 
-                "--model", "tiny", 
+                "--model", "base", 
                 "--output_format", "srt", 
                 "--output_dir", whisper_output_dir
             ]
             
-            st.info("Iniciando transcrição com Whisper. Isso pode levar alguns minutos, por favor seja paciente.")
+            st.info("Iniciando transcrição com Whisper (modelo base). A transcrição geralmente leva cerca de 2x a duração do vídeo original.")
             
             # Run whisper - this will block until complete
             result = subprocess.run(whisper_cmd, capture_output=True, text=True)
